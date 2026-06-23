@@ -1,0 +1,191 @@
+// Prisma schema for JLR's World Cup 2026 staff prediction league
+// Run `npx prisma db push` after setting DATABASE_URL to create these tables.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------- Core people & org ----------
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique // canonical English name, e.g. "Product & Pricing"
+  nameAr    String? // Arabic display name (falls back to `name` if null)
+  shortCode String   @unique // 2-4 letter badge code shown next to names, e.g. "P&P"
+  colorHex  String   @default("#9B6A43")
+  createdAt DateTime @default(now())
+
+  users User[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique // login identifier — must match the employee ID at sign-in
+  employeeCode String   @unique // login identifier, e.g. staff ID
+  passwordHash String
+  avatarLabel  String? // 2-3 letter initials shown in the colored avatar chip
+  role         Role     @default(EMPLOYEE)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  totalPoints   Int      @default(0)
+  currentStreak Int      @default(0) // consecutive correct predictions
+  bestStreak    Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  predictions      Prediction[]
+  championPick     ChampionPick?
+  comments         Comment[]
+  userAchievements UserAchievement[]
+
+  @@index([totalPoints])
+}
+
+enum Role {
+  EMPLOYEE
+  ADMIN
+}
+
+// ---------- Tournament data (synced from public World Cup feed) ----------
+
+model Team {
+  id        String  @id @default(cuid())
+  nameEn    String  @unique
+  nameAr    String?
+  flagEmoji String?
+  group     String? // "A".."L", null for teams not yet determined
+
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+  championPickedBy ChampionPick[]
+}
+
+model Match {
+  id           String   @id @default(cuid())
+  externalRef  String?  @unique // identifier/num from source feed, for sync de-dup
+  round        String   // "Matchday 1", "Round of 32", "Quarter-final", "Final"...
+  group        String?  // "A".."L" or null for knockout
+  kickoffAt    DateTime
+  venue        String?
+
+  homeTeamId   String?
+  awayTeamId   String?
+  homeTeam     Team?    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam     Team?    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  // raw placeholder labels from the bracket before teams are confirmed, e.g. "Winner Match 73"
+  homeTeamLabel String?
+  awayTeamLabel String?
+
+  homeScore    Int?
+  awayScore    Int?
+  status       MatchStatus @default(SCHEDULED)
+  // Who last set the result -- lets the auto-sync avoid overwriting an
+  // admin's manual correction (e.g. after a penalty shootout).
+  resultSource ResultSource? @default(AUTO)
+
+  lockAt       DateTime  // predictions close at kickoff
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  predictions  Prediction[]
+
+  @@index([kickoffAt])
+  @@index([round])
+}
+
+enum ResultSource {
+  AUTO
+  ADMIN
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+}
+
+// ---------- Predictions & scoring ----------
+
+model Prediction {
+  id        String   @id @default(cuid())
+  userId    String
+  matchId   String
+  user      User     @relation(fields: [userId], references: [id])
+  match     Match    @relation(fields: [matchId], references: [id])
+
+  predHomeScore Int
+  predAwayScore Int
+
+  pointsAwarded Int?     // null until match finishes; 6 exact, 3 correct outcome, 0 wrong
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, matchId])
+  @@index([matchId])
+}
+
+model ChampionPick {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  teamId     String
+  team       Team     @relation(fields: [teamId], references: [id])
+  lockedAt   DateTime @default(now())
+  bonusAwarded Boolean @default(false) // true once +30 has been credited
+}
+
+// ---------- Achievements / badges ----------
+
+model Achievement {
+  id             String @id @default(cuid())
+  code           String @unique // "astoori", "muhannak", ...
+  name           String
+  description    String
+  icon           String // key used by frontend to render an icon
+  pointThreshold Int? // used by the points-scanning job, null if event-driven
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  user          User        @relation(fields: [userId], references: [id])
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+// ---------- News & comments ----------
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  titleAr   String?
+  body      String
+  bodyAr    String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  matchId   String?  // null = general feed, set = tied to a specific match
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([matchId])
+  @@index([createdAt])
+}

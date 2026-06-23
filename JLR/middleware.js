@@ -1,0 +1,42 @@
+import { NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
+
+const PUBLIC_PATHS = ['/login', '/api/auth'];
+
+export async function middleware(req) {
+  const { pathname } = req.nextUrl;
+
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  // Allow the cron sync endpoint through (it checks its own bearer secret)
+  if (pathname.startsWith('/api/sync-scores')) {
+    return NextResponse.next();
+  }
+
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+  if (!token && pathname.startsWith('/api')) {
+    return NextResponse.json({ error: 'err_mustLogin' }, { status: 401 });
+  }
+
+  if (!token && !pathname.startsWith('/_next')) {
+    const loginUrl = new URL('/login', req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin-only area
+  if ((pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) && token?.role !== 'ADMIN') {
+    if (pathname.startsWith('/api/admin')) {
+      return NextResponse.json({ error: 'err_forbidden' }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL('/predictions', req.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+};
