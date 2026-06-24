@@ -1,4 +1,4 @@
-﻿// Shared logic for recalculating prediction points, user totals/streaks,
+// Shared logic for recalculating prediction points, user totals/streaks,
 // achievement unlocks, and the champion-pick bonus. Used by both the
 // automatic score-sync cron job and the admin's manual result entry,
 // so the two paths can never drift out of sync with each other.
@@ -134,7 +134,7 @@ export async function evaluateAchievements() {
     if (byCode.muhannak && u.currentStreak >= 5 && !unlocked.has(byCode.muhannak.id)) {
       toUnlock.push(byCode.muhannak.id);
     }
-    // batal_tawaqqu (Prediction Accuracy): hit an exact score
+    // batal_tawaqqu (Prediction Champion): hit an exact score
     if (byCode.batal_tawaqqu && exactCount >= 1 && !unlocked.has(byCode.batal_tawaqqu.id)) {
       toUnlock.push(byCode.batal_tawaqqu.id);
     }
@@ -154,4 +154,3 @@ export async function evaluateAchievements() {
     }
   }
 }
-
