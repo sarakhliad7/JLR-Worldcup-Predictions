@@ -3,122 +3,77 @@
 import { useState } from 'react';
 import { useLocale } from '../lib/i18n/LocaleContext';
 
-const TEAM_FLAGS = {
-  Argentina: '🇦🇷',
-  Australia: '🇦🇺',
-  Austria: '🇦🇹',
-  Belgium: '🇧🇪',
-  Brazil: '🇧🇷',
-  Canada: '🇨🇦',
-  Colombia: '🇨🇴',
-  Croatia: '🇭🇷',
-  Denmark: '🇩🇰',
-  Ecuador: '🇪🇨',
-  Egypt: '🇪🇬',
-  England: '🏴',
-  France: '🇫🇷',
-  Germany: '🇩🇪',
-  Ghana: '🇬🇭',
-  Iran: '🇮🇷',
-  Italy: '🇮🇹',
-  Japan: '🇯🇵',
-  Jordan: '🇯🇴',
-  Mexico: '🇲🇽',
-  Morocco: '🇲🇦',
-  Netherlands: '🇳🇱',
-  Norway: '🇳🇴',
-  Paraguay: '🇵🇾',
-  Portugal: '🇵🇹',
-  Qatar: '🇶🇦',
-  'Saudi Arabia': '🇸🇦',
-  Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  'South Africa': '🇿🇦',
-  'South Korea': '🇰🇷',
-  Spain: '🇪🇸',
-  Switzerland: '🇨🇭',
-  Tunisia: '🇹🇳',
-  Turkey: '🇹🇷',
-  Uruguay: '🇺🇾',
-  USA: '🇺🇸',
-  'United States': '🇺🇸',
-  'United States of America': '🇺🇸',
-  Czechia: '🇨🇿',
-  'Czech Republic': '🇨🇿',
-  'Bosnia & Herzegovina': '🇧🇦',
-  'Bosnia and Herzegovina': '🇧🇦',
-  'New Zealand': '🇳🇿',
-  Haiti: '🇭🇹',
-  Curaçao: '🇨🇼',
-  Curacao: '🇨🇼',
-  Sweden: '🇸🇪',
-  'Cape Verde': '🇨🇻',
-  Senegal: '🇸🇳',
-  'Ivory Coast': '🇨🇮',
-  'Côte d’Ivoire': '🇨🇮',
-  'Cote dIvoire': '🇨🇮',
-  'Costa Rica': '🇨🇷',
-  Panama: '🇵🇦',
-  Algeria: '🇩🇿',
-  Nigeria: '🇳🇬',
+const FLAG_CODES = {
+  Argentina: 'ar',
+  Australia: 'au',
+  Austria: 'at',
+  Belgium: 'be',
+  Brazil: 'br',
+  Canada: 'ca',
+  Colombia: 'co',
+  Croatia: 'hr',
+  Denmark: 'dk',
+  Ecuador: 'ec',
+  Egypt: 'eg',
+  England: 'gb-eng',
+  France: 'fr',
+  Germany: 'de',
+  Ghana: 'gh',
+  Iran: 'ir',
+  Italy: 'it',
+  Japan: 'jp',
+  Jordan: 'jo',
+  Mexico: 'mx',
+  Morocco: 'ma',
+  Netherlands: 'nl',
+  Norway: 'no',
+  Paraguay: 'py',
+  Portugal: 'pt',
+  Qatar: 'qa',
+  'Saudi Arabia': 'sa',
+  Scotland: 'gb-sct',
+  'South Africa': 'za',
+  'South Korea': 'kr',
+  Spain: 'es',
+  Switzerland: 'ch',
+  Tunisia: 'tn',
+  Turkey: 'tr',
+  Uruguay: 'uy',
+  USA: 'us',
+  'United States': 'us',
+  'United States of America': 'us',
+  Czechia: 'cz',
+  'Czech Republic': 'cz',
+  'Bosnia & Herzegovina': 'ba',
+  'Bosnia and Herzegovina': 'ba',
+  'New Zealand': 'nz',
+  Haiti: 'ht',
+  Curaçao: 'cw',
+  Curacao: 'cw',
+  Sweden: 'se',
+  'Cape Verde': 'cv',
+  Senegal: 'sn',
+  'Ivory Coast': 'ci',
+  'Côte d’Ivoire': 'ci',
+  'Cote dIvoire': 'ci',
+  'Costa Rica': 'cr',
+  Panama: 'pa',
+  Algeria: 'dz',
+  Nigeria: 'ng',
 };
 
-const CODE_FLAGS = {
-  AR: '🇦🇷',
-  AU: '🇦🇺',
-  AT: '🇦🇹',
-  BE: '🇧🇪',
-  BR: '🇧🇷',
-  CA: '🇨🇦',
-  CH: '🇨🇭',
-  CO: '🇨🇴',
-  HR: '🇭🇷',
-  DK: '🇩🇰',
-  EC: '🇪🇨',
-  EG: '🇪🇬',
-  FR: '🇫🇷',
-  DE: '🇩🇪',
-  GH: '🇬🇭',
-  IR: '🇮🇷',
-  IT: '🇮🇹',
-  JP: '🇯🇵',
-  JO: '🇯🇴',
-  MX: '🇲🇽',
-  MA: '🇲🇦',
-  NL: '🇳🇱',
-  NO: '🇳🇴',
-  PY: '🇵🇾',
-  PT: '🇵🇹',
-  QA: '🇶🇦',
-  SA: '🇸🇦',
-  ZA: '🇿🇦',
-  KR: '🇰🇷',
-  ES: '🇪🇸',
-  TN: '🇹🇳',
-  TR: '🇹🇷',
-  UY: '🇺🇾',
-  US: '🇺🇸',
-  USA: '🇺🇸',
-  CZ: '🇨🇿',
-  BA: '🇧🇦',
-  NZ: '🇳🇿',
-  HT: '🇭🇹',
-  CW: '🇨🇼',
-  SE: '🇸🇪',
-  CV: '🇨🇻',
-  SN: '🇸🇳',
-  CI: '🇨🇮',
-  CR: '🇨🇷',
-  PA: '🇵🇦',
-  DZ: '🇩🇿',
-  NG: '🇳🇬',
+const CODE_TO_FLAG = {
+  AR: 'ar', AU: 'au', AT: 'at', BE: 'be', BR: 'br', CA: 'ca', CH: 'ch',
+  CO: 'co', HR: 'hr', DK: 'dk', EC: 'ec', EG: 'eg', FR: 'fr', DE: 'de',
+  GH: 'gh', IR: 'ir', IT: 'it', JP: 'jp', JO: 'jo', MX: 'mx', MA: 'ma',
+  NL: 'nl', NO: 'no', PY: 'py', PT: 'pt', QA: 'qa', SA: 'sa', ZA: 'za',
+  KR: 'kr', ES: 'es', TN: 'tn', TR: 'tr', UY: 'uy', US: 'us', USA: 'us',
+  CZ: 'cz', BA: 'ba', NZ: 'nz', HT: 'ht', CW: 'cw', SE: 'se', CV: 'cv',
+  SN: 'sn', CI: 'ci', CR: 'cr', PA: 'pa', DZ: 'dz', NG: 'ng',
 };
 
 function normalizeTeamName(value) {
-  return String(value || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/^[^\p{L}\p{N}]+/u, '')
-    .replace(/[^\p{L}\p{N}]+$/u, '');
+  return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
 function getTeamName(team, locale) {
@@ -132,17 +87,13 @@ function getTeamName(team, locale) {
     team.label ||
     '';
 
-  if (locale === 'ar') {
-    return team.nameAr || englishName;
-  }
-
-  return englishName;
+  return locale === 'ar' ? team.nameAr || englishName : englishName;
 }
 
-function getTeamFlag(team, locale) {
-  if (!team) return '⚽';
+function getFlagCode(team, locale) {
+  if (!team) return '';
 
-  const possibleNames = [
+  const names = [
     team.nameEn,
     team.name,
     team.teamName,
@@ -153,20 +104,14 @@ function getTeamFlag(team, locale) {
     .filter(Boolean)
     .map(normalizeTeamName);
 
-  for (const name of possibleNames) {
-    if (TEAM_FLAGS[name]) return TEAM_FLAGS[name];
+  for (const name of names) {
+    if (FLAG_CODES[name]) return FLAG_CODES[name];
   }
 
-  const rawFlag = String(team.flagEmoji || '').trim();
-  const code = rawFlag.toUpperCase();
+  const raw = String(team.flagEmoji || '').trim().toUpperCase();
+  if (CODE_TO_FLAG[raw]) return CODE_TO_FLAG[raw];
 
-  if (CODE_FLAGS[code]) return CODE_FLAGS[code];
-
-  if (rawFlag && rawFlag.length > 3) {
-    return rawFlag;
-  }
-
-  return '🏳️';
+  return '';
 }
 
 function StatusBadge({ status, locked, t }) {
@@ -201,11 +146,20 @@ function StatusBadge({ status, locked, t }) {
 function TeamLabel({ team, label, locale }) {
   if (team) {
     const name = getTeamName(team, locale);
-    const flag = getTeamFlag(team, locale);
+    const flagCode = getFlagCode(team, locale);
 
     return (
       <div className="flex flex-col items-center gap-1.5 w-20">
-        <span className="text-3xl leading-none">{flag}</span>
+        {flagCode ? (
+          <img
+            src={`https://flagcdn.com/w80/${flagCode}.png`}
+            alt={name}
+            className="w-9 h-6 object-cover rounded-sm shadow-sm"
+          />
+        ) : (
+          <span className="text-2xl leading-none opacity-40">⚽</span>
+        )}
+
         <span className="text-xs text-ink/85 text-center leading-tight">
           {name}
         </span>
@@ -263,15 +217,8 @@ export default function MatchCard({ match, onSaved }) {
     <div className="rounded-card bg-card-soft border border-card-border/60 shadow-sm p-4 animate-riseIn">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-ink-faint">
-          {kickoff.toLocaleDateString(dateLocale, {
-            day: 'numeric',
-            month: 'short',
-          })}{' '}
-          ·{' '}
-          {kickoff.toLocaleTimeString(dateLocale, {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {kickoff.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })} ·{' '}
+          {kickoff.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
         </span>
 
         <span className="text-xs text-ink-faint">
@@ -280,49 +227,35 @@ export default function MatchCard({ match, onSaved }) {
       </div>
 
       <div className="flex items-center justify-between px-2">
-        <TeamLabel
-          team={match.homeTeam}
-          label={match.homeTeamLabel}
-          locale={locale}
-        />
+        <TeamLabel team={match.homeTeam} label={match.homeTeamLabel} locale={locale} />
 
         {match.status === 'FINISHED' || match.status === 'LIVE' ? (
           <div className="font-tabular text-3xl font-bold text-ink tabular-nums tracking-wider">
             {match.homeScore ?? '–'} : {match.awayScore ?? '–'}
           </div>
         ) : (
-          <span className="text-ink-placeholder text-sm font-semibold px-2">
-            vs
-          </span>
+          <span className="text-ink-placeholder text-sm font-semibold px-2">vs</span>
         )}
 
-        <TeamLabel
-          team={match.awayTeam}
-          label={match.awayTeamLabel}
-          locale={locale}
-        />
+        <TeamLabel team={match.awayTeam} label={match.awayTeamLabel} locale={locale} />
       </div>
 
       <div className="mt-2 flex justify-center">
         <StatusBadge status={match.status} locked={match.locked} t={t} />
       </div>
 
-      {!canPredict &&
-        match.status !== 'FINISHED' &&
-        match.status !== 'LIVE' && (
-          <p className="text-center text-xs text-ink-placeholder mt-3">
-            {t('pred_teamsNotSet')}
-          </p>
-        )}
+      {!canPredict && match.status !== 'FINISHED' && match.status !== 'LIVE' && (
+        <p className="text-center text-xs text-ink-placeholder mt-3">
+          {t('pred_teamsNotSet')}
+        </p>
+      )}
 
       {canPredict && (
         <div className="mt-4 border-t border-card-border/60 pt-4">
           {!editing && match.myPrediction ? (
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <span className="text-ink-body">
-                  {t('pred_yourPrediction')}{' '}
-                </span>
+                <span className="text-ink-body">{t('pred_yourPrediction')} </span>
                 <span className="font-tabular font-bold text-ink">
                   {home} : {away}
                 </span>
@@ -355,9 +288,7 @@ export default function MatchCard({ match, onSaved }) {
                 <ScoreStepper value={away} onChange={setAway} t={t} />
               </div>
 
-              {err && (
-                <p className="text-flare text-xs text-center">{err}</p>
-              )}
+              {err && <p className="text-flare text-xs text-center">{err}</p>}
 
               <button
                 onClick={save}
