@@ -63,19 +63,18 @@ export default function LoginPage() {
 
           <div className="relative rounded-card border border-card-border/70 bg-card shadow-card backdrop-blur-xl overflow-hidden">
             <div className="px-0 pt-0 pb-6 text-center">
-              <div
-                className="w-full h-[350px] mb-2 -mt-1"
-                style={{
-                  backgroundImage: 'url(/trophy-hero-sm.png)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center -25px',
-                  backgroundRepeat: 'no-repeat',
-                  maskImage: 'linear-gradient(to bottom, black 97%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 97%, transparent 100%)',
-                }}
-                role="img"
-                aria-label="World Cup trophy"
-              />
+              <div className="relative w-full h-[335px] sm:h-[350px] mb-2 overflow-hidden">
+                <img
+                  src="/trophy-hero-sm.png"
+                  alt="World Cup trophy"
+                  className="w-full h-full object-cover"
+                  style={{
+                    objectPosition: 'center top',
+                    maskImage: 'linear-gradient(to bottom, black 94%, transparent 100%)',
+                    WebkitMaskImage: 'linear-gradient(to bottom, black 94%, transparent 100%)',
+                  }}
+                />
+              </div>
 
               <div className="px-7">
                 <p className="text-[11px] tracking-[0.22em] uppercase text-gold-eyebrow font-bold mb-3">
@@ -125,6 +124,7 @@ export default function LoginPage() {
                           className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
                         />
                       </div>
+
                       <button
                         type="button"
                         onClick={() => setShowEmployeeCode((s) => !s)}
