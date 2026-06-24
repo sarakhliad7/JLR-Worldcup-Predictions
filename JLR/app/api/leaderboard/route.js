@@ -12,23 +12,24 @@ export async function GET(req) {
     ...(departmentId ? { departmentId } : {}),
   };
 
-  const participantCount = await prisma.user.count({
-    where: baseWhere,
-  });
-
   const users = await prisma.user.findMany({
     where: {
       ...baseWhere,
-      OR: [
-        { predictions: { some: {} } },
-        { championPick: { isNot: null } },
-        { totalPoints: { gt: 0 } },
-      ],
+      totalPoints: { gt: 0 },
     },
     include: {
       department: true,
-      predictions: { select: { pointsAwarded: true, createdAt: true } },
-      userAchievements: { include: { achievement: true } },
+      predictions: {
+        select: {
+          pointsAwarded: true,
+          createdAt: true,
+        },
+      },
+      userAchievements: {
+        include: {
+          achievement: true,
+        },
+      },
     },
     take: 500,
   });
@@ -40,8 +41,12 @@ export async function GET(req) {
         (p) => p.pointsAwarded != null && p.pointsAwarded > 0
       ).length;
 
-      const earliestSubmission = u.predictions.length
-        ? Math.min(...u.predictions.map((p) => new Date(p.createdAt).getTime()))
+      const earliestCorrectSubmission = u.predictions
+        .filter((p) => p.pointsAwarded != null && p.pointsAwarded > 0)
+        .map((p) => new Date(p.createdAt).getTime());
+
+      const earliestSubmission = earliestCorrectSubmission.length
+        ? Math.min(...earliestCorrectSubmission)
         : Infinity;
 
       return {
@@ -66,6 +71,7 @@ export async function GET(req) {
     .sort((a, b) => {
       if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
       if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
+      if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
       return a._earliestSubmission - b._earliestSubmission;
     })
     .map(({ _earliestSubmission, ...rest }, idx) => ({
@@ -75,6 +81,6 @@ export async function GET(req) {
 
   return NextResponse.json({
     leaderboard: shaped,
-    participantCount,
+    participantCount: shaped.length,
   });
 }
