@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocale } from '../lib/i18n/LocaleContext';
 
 const TEAM_FLAGS = {
@@ -62,6 +62,57 @@ const TEAM_FLAGS = {
   Nigeria: '🇳🇬',
 };
 
+const CODE_FLAGS = {
+  AR: '🇦🇷',
+  AU: '🇦🇺',
+  AT: '🇦🇹',
+  BE: '🇧🇪',
+  BR: '🇧🇷',
+  CA: '🇨🇦',
+  CH: '🇨🇭',
+  CO: '🇨🇴',
+  HR: '🇭🇷',
+  DK: '🇩🇰',
+  EC: '🇪🇨',
+  EG: '🇪🇬',
+  FR: '🇫🇷',
+  DE: '🇩🇪',
+  GH: '🇬🇭',
+  IR: '🇮🇷',
+  IT: '🇮🇹',
+  JP: '🇯🇵',
+  JO: '🇯🇴',
+  MX: '🇲🇽',
+  MA: '🇲🇦',
+  NL: '🇳🇱',
+  NO: '🇳🇴',
+  PY: '🇵🇾',
+  PT: '🇵🇹',
+  QA: '🇶🇦',
+  SA: '🇸🇦',
+  ZA: '🇿🇦',
+  KR: '🇰🇷',
+  ES: '🇪🇸',
+  TN: '🇹🇳',
+  TR: '🇹🇷',
+  UY: '🇺🇾',
+  US: '🇺🇸',
+  USA: '🇺🇸',
+  CZ: '🇨🇿',
+  BA: '🇧🇦',
+  NZ: '🇳🇿',
+  HT: '🇭🇹',
+  CW: '🇨🇼',
+  SE: '🇸🇪',
+  CV: '🇨🇻',
+  SN: '🇸🇳',
+  CI: '🇨🇮',
+  CR: '🇨🇷',
+  PA: '🇵🇦',
+  DZ: '🇩🇿',
+  NG: '🇳🇬',
+};
+
 function normalizeTeamName(value) {
   return String(value || '')
     .trim()
@@ -106,7 +157,16 @@ function getTeamFlag(team, locale) {
     if (TEAM_FLAGS[name]) return TEAM_FLAGS[name];
   }
 
-  return team.flagEmoji || '🏳️';
+  const rawFlag = String(team.flagEmoji || '').trim();
+  const code = rawFlag.toUpperCase();
+
+  if (CODE_FLAGS[code]) return CODE_FLAGS[code];
+
+  if (rawFlag && rawFlag.length > 3) {
+    return rawFlag;
+  }
+
+  return '🏳️';
 }
 
 function StatusBadge({ status, locked, t }) {
@@ -170,16 +230,6 @@ export default function MatchCard({ match, onSaved }) {
   const [editing, setEditing] = useState(!match.myPrediction);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
-
-  useEffect(() => {
-    console.log('MATCH DEBUG:', {
-      id: match.id,
-      homeTeam: match.homeTeam,
-      awayTeam: match.awayTeam,
-      homeTeamLabel: match.homeTeamLabel,
-      awayTeamLabel: match.awayTeamLabel,
-    });
-  }, [match]);
 
   const canPredict = match.homeTeam && match.awayTeam && !match.locked;
   const kickoff = new Date(match.kickoffAt);
