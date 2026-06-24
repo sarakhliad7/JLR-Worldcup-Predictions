@@ -1,6 +1,6 @@
 'use client';
 
-const STEP_HEIGHT = { 1: 'h-24', 2: 'h-20', 3: 'h-18' };
+const STEP_HEIGHT = { 1: 'h-24', 2: 'h-20', 3: 'h-16' };
 const ORDER = [2, 1, 3];
 
 function rankBadge(rank) {
@@ -8,12 +8,6 @@ function rankBadge(rank) {
   if (rank === 2) return '#2';
   if (rank === 3) return '#3';
   return `#${rank}`;
-}
-
-function badgeClass(rank) {
-  if (rank === 1) return 'border-gold text-gold-dark bg-gold/10';
-  if (rank === 2) return 'border-ink-faint/40 text-ink-body bg-white/50';
-  return 'border-terracotta text-terracotta bg-terracotta/10';
 }
 
 export default function Podium({ top3 }) {
@@ -31,15 +25,7 @@ export default function Podium({ top3 }) {
         return (
           <div key={rank} className="flex-1 flex flex-col items-center min-w-0">
             <div
-              className={`mb-2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold border-2 shadow-sm ${badgeClass(
-                rank
-              )}`}
-            >
-              {rankBadge(rank)}
-            </div>
-
-            <div
-              className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm mb-2 border-2 shadow-sm"
+              className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-base mb-2 border-2 shadow-sm"
               style={{
                 backgroundColor: `${u.department?.colorHex || '#9B6A43'}26`,
                 borderColor: u.department?.colorHex || '#9B6A43',
@@ -49,7 +35,7 @@ export default function Podium({ top3 }) {
               {u.avatarLabel}
             </div>
 
-            <p className="text-xs text-ink text-center font-bold leading-tight mb-2 line-clamp-1 max-w-[90px]">
+            <p className="text-xs text-ink text-center font-bold leading-tight mb-2 line-clamp-2 max-w-[100px] min-h-[32px]">
               {u.name}
             </p>
 
