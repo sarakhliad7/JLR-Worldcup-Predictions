@@ -10,8 +10,6 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useLocale();
   const [email, setEmail] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +21,6 @@ export default function LoginPage() {
     const res = await signIn('credentials', {
       email: email.trim().toLowerCase(),
       employeeCode: employeeCode.trim(),
-      password,
       redirect: false,
     });
 
@@ -53,18 +50,10 @@ export default function LoginPage() {
               className="flex items-center gap-1 rounded-full border border-gold/25 bg-white/50 p-1 text-sm font-bold shadow-sm backdrop-blur focus-ring"
               aria-label="Switch language"
             >
-              <span
-                className={`rounded-full px-3 py-1.5 transition-colors ${
-                  locale === 'ar' ? 'bg-gold text-white' : 'text-gold-dark'
-                }`}
-              >
+              <span className={`rounded-full px-3 py-1.5 transition-colors ${locale === 'ar' ? 'bg-gold text-white' : 'text-gold-dark'}`}>
                 AR
               </span>
-              <span
-                className={`rounded-full px-3 py-1.5 transition-colors ${
-                  locale === 'en' ? 'bg-gold text-white' : 'text-gold-dark'
-                }`}
-              >
+              <span className={`rounded-full px-3 py-1.5 transition-colors ${locale === 'en' ? 'bg-gold text-white' : 'text-gold-dark'}`}>
                 EN
               </span>
             </button>
@@ -89,10 +78,12 @@ export default function LoginPage() {
               <p className="text-[11px] tracking-[0.22em] uppercase text-gold-eyebrow font-bold mb-3">
                 {t('worldCup2026')}
               </p>
+
               <h1 className="text-3xl font-extrabold leading-tight text-ink font-display">
                 <span className="block text-ink">{t('login_title_line1')}</span>
                 <span className="block text-gold">{t('login_title_line2')}</span>
               </h1>
+
               <p className="text-sm leading-6 text-ink-body mt-3 max-w-xs mx-auto">
                 {t('login_subtitle')}
               </p>
@@ -116,7 +107,7 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <div className="px-4 pt-4 pb-3 border-b border-card-border/60 flex items-start gap-3">
+                  <div className="px-4 pt-4 pb-4 flex items-start gap-3">
                     <IdIcon />
                     <div className="flex-1">
                       <label className="block text-sm font-bold text-ink-label mb-1">
@@ -131,31 +122,6 @@ export default function LoginPage() {
                         className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
                       />
                     </div>
-                  </div>
-
-                  <div className="px-4 pt-4 pb-4 flex items-start gap-3">
-                    <LockIcon />
-                    <div className="flex-1">
-                      <label className="block text-sm font-bold text-ink-label mb-1">
-                        {t('login_password')}
-                      </label>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={t('login_passwordPlaceholder')}
-                        className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="text-ink-faint focus-ring shrink-0 mt-0.5"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
                   </div>
                 </div>
 
@@ -208,34 +174,6 @@ function IdIcon() {
       <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="9" cy="12" r="2" stroke="currentColor" strokeWidth="1.6" />
       <path d="M14 10h4M14 14h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-gold mt-0.5 shrink-0">
-      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function EyeOffIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

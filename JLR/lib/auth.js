@@ -1,5 +1,4 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { verifyPassword } from './password';
 import { prisma } from './prisma';
 
 export const authOptions = {
@@ -13,10 +12,9 @@ export const authOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         employeeCode: { label: 'Employee ID', type: 'text' },
-        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.employeeCode || !credentials?.password) {
+        if (!credentials?.email || !credentials?.employeeCode) {
           return null;
         }
 
@@ -27,11 +25,7 @@ export const authOptions = {
 
         if (!user) return null;
 
-        // Both the email AND the employee ID must match the same account.
         if (user.employeeCode !== credentials.employeeCode.trim()) return null;
-
-        const valid = verifyPassword(credentials.password, user.passwordHash);
-        if (!valid) return null;
 
         return {
           id: user.id,
