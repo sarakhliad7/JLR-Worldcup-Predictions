@@ -3,6 +3,84 @@
 import { useState } from 'react';
 import { useLocale } from '../lib/i18n/LocaleContext';
 
+const TEAM_FLAGS = {
+  Argentina: '🇦🇷',
+  Australia: '🇦🇺',
+  Austria: '🇦🇹',
+  Belgium: '🇧🇪',
+  Brazil: '🇧🇷',
+  Canada: '🇨🇦',
+  Colombia: '🇨🇴',
+  Croatia: '🇭🇷',
+  Denmark: '🇩🇰',
+  Ecuador: '🇪🇨',
+  Egypt: '🇪🇬',
+  England: '🏴',
+  France: '🇫🇷',
+  Germany: '🇩🇪',
+  Ghana: '🇬🇭',
+  Iran: '🇮🇷',
+  Italy: '🇮🇹',
+  Japan: '🇯🇵',
+  Jordan: '🇯🇴',
+  Mexico: '🇲🇽',
+  Morocco: '🇲🇦',
+  Netherlands: '🇳🇱',
+  Norway: '🇳🇴',
+  Paraguay: '🇵🇾',
+  Portugal: '🇵🇹',
+  Qatar: '🇶🇦',
+  Saudi Arabia: '🇸🇦',
+  Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  South Africa: '🇿🇦',
+  South Korea: '🇰🇷',
+  Spain: '🇪🇸',
+  Switzerland: '🇨🇭',
+  Tunisia: '🇹🇳',
+  Turkey: '🇹🇷',
+  Uruguay: '🇺🇾',
+  USA: '🇺🇸',
+  'United States': '🇺🇸',
+  'United States of America': '🇺🇸',
+  'Czech Republic': '🇨🇿',
+  Czechia: '🇨🇿',
+  'Bosnia & Herzegovina': '🇧🇦',
+  'Bosnia and Herzegovina': '🇧🇦',
+  'New Zealand': '🇳🇿',
+  Haiti: '🇭🇹',
+  Curaçao: '🇨🇼',
+  Curacao: '🇨🇼',
+  Sweden: '🇸🇪',
+  'Cape Verde': '🇨🇻',
+  Senegal: '🇸🇳',
+  'Ivory Coast': '🇨🇮',
+  'Côte d’Ivoire': '🇨🇮',
+  'Cote dIvoire': '🇨🇮',
+  'Costa Rica': '🇨🇷',
+  Panama: '🇵🇦',
+  Algeria: '🇩🇿',
+  Nigeria: '🇳🇬',
+};
+
+function getTeamName(team, locale) {
+  if (!team) return '';
+  return locale === 'ar' ? team.nameAr || team.nameEn : team.nameEn;
+}
+
+function getTeamFlag(team, locale) {
+  if (!team) return '⚽';
+
+  const nameEn = team.nameEn || '';
+  const displayName = getTeamName(team, locale);
+
+  return (
+    team.flagEmoji ||
+    TEAM_FLAGS[nameEn] ||
+    TEAM_FLAGS[displayName] ||
+    '🏳️'
+  );
+}
+
 function StatusBadge({ status, locked, t }) {
   if (status === 'FINISHED') {
     return (
@@ -11,6 +89,7 @@ function StatusBadge({ status, locked, t }) {
       </span>
     );
   }
+
   if (status === 'LIVE') {
     return (
       <span className="flex items-center gap-1.5 text-[11px] font-semibold text-flare bg-flare-dim/15 rounded-full px-2.5 py-0.5">
@@ -19,6 +98,7 @@ function StatusBadge({ status, locked, t }) {
       </span>
     );
   }
+
   if (locked) {
     return (
       <span className="text-[11px] font-semibold text-ink-faint bg-ink/5 rounded-full px-2.5 py-0.5">
@@ -26,23 +106,31 @@ function StatusBadge({ status, locked, t }) {
       </span>
     );
   }
+
   return null;
 }
 
 function TeamLabel({ team, label, locale }) {
   if (team) {
-    const name = locale === 'ar' ? team.nameAr || team.nameEn : team.nameEn;
+    const name = getTeamName(team, locale);
+    const flag = getTeamFlag(team, locale);
+
     return (
       <div className="flex flex-col items-center gap-1.5 w-20">
-        <span className="text-2xl leading-none">{team.flagEmoji || '🏳️'}</span>
-        <span className="text-xs text-ink/85 text-center leading-tight">{name}</span>
+        <span className="text-3xl leading-none">{flag}</span>
+        <span className="text-xs text-ink/85 text-center leading-tight">
+          {name}
+        </span>
       </div>
     );
   }
+
   return (
     <div className="flex flex-col items-center gap-1.5 w-20">
       <span className="text-2xl leading-none opacity-40">⚽</span>
-      <span className="text-[11px] text-ink-faint text-center leading-tight">{label || '—'}</span>
+      <span className="text-[11px] text-ink-faint text-center leading-tight">
+        {label || '—'}
+      </span>
     </div>
   );
 }
@@ -62,14 +150,18 @@ export default function MatchCard({ match, onSaved }) {
   async function save() {
     setSaving(true);
     setErr('');
+
     try {
       const res = await fetch(`/api/predictions/${match.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ predHomeScore: home, predAwayScore: away }),
       });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(t(data.error) || t('pred_saveFailed'));
+
       setEditing(false);
       onSaved?.();
     } catch (e) {
@@ -83,42 +175,70 @@ export default function MatchCard({ match, onSaved }) {
     <div className="rounded-card bg-card-soft border border-card-border/60 shadow-sm p-4 animate-riseIn">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-ink-faint">
-          {kickoff.toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })} · {kickoff.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit' })}
+          {kickoff.toLocaleDateString(dateLocale, {
+            day: 'numeric',
+            month: 'short',
+          })}{' '}
+          ·{' '}
+          {kickoff.toLocaleTimeString(dateLocale, {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
         </span>
-        <span className="text-xs text-ink-faint">{match.group ? `${t('group_label')} ${match.group}` : match.round}</span>
+
+        <span className="text-xs text-ink-faint">
+          {match.group ? `${t('group_label')} ${match.group}` : match.round}
+        </span>
       </div>
 
       <div className="flex items-center justify-between px-2">
-        <TeamLabel team={match.homeTeam} label={match.homeTeamLabel} locale={locale} />
+        <TeamLabel
+          team={match.homeTeam}
+          label={match.homeTeamLabel}
+          locale={locale}
+        />
 
         {match.status === 'FINISHED' || match.status === 'LIVE' ? (
           <div className="font-tabular text-3xl font-bold text-ink tabular-nums tracking-wider">
             {match.homeScore ?? '–'} : {match.awayScore ?? '–'}
           </div>
         ) : (
-          <span className="text-ink-placeholder text-sm font-semibold px-2">vs</span>
+          <span className="text-ink-placeholder text-sm font-semibold px-2">
+            vs
+          </span>
         )}
 
-        <TeamLabel team={match.awayTeam} label={match.awayTeamLabel} locale={locale} />
+        <TeamLabel
+          team={match.awayTeam}
+          label={match.awayTeamLabel}
+          locale={locale}
+        />
       </div>
 
       <div className="mt-2 flex justify-center">
         <StatusBadge status={match.status} locked={match.locked} t={t} />
       </div>
 
-      {!canPredict && match.status !== 'FINISHED' && match.status !== 'LIVE' && (
-        <p className="text-center text-xs text-ink-placeholder mt-3">{t('pred_teamsNotSet')}</p>
-      )}
+      {!canPredict &&
+        match.status !== 'FINISHED' &&
+        match.status !== 'LIVE' && (
+          <p className="text-center text-xs text-ink-placeholder mt-3">
+            {t('pred_teamsNotSet')}
+          </p>
+        )}
 
       {canPredict && (
         <div className="mt-4 border-t border-card-border/60 pt-4">
           {!editing && match.myPrediction ? (
             <div className="flex items-center justify-between">
               <div className="text-sm">
-                <span className="text-ink-body">{t('pred_yourPrediction')} </span>
+                <span className="text-ink-body">
+                  {t('pred_yourPrediction')}{' '}
+                </span>
                 <span className="font-tabular font-bold text-ink">
                   {home} : {away}
                 </span>
+
                 {match.myPrediction.pointsAwarded != null && (
                   <span
                     className={`mx-2 text-xs font-bold rounded-full px-2 py-0.5 ${
@@ -131,6 +251,7 @@ export default function MatchCard({ match, onSaved }) {
                   </span>
                 )}
               </div>
+
               <button
                 onClick={() => setEditing(true)}
                 className="text-gold-dark text-sm font-semibold focus-ring"
@@ -145,7 +266,11 @@ export default function MatchCard({ match, onSaved }) {
                 <span className="text-ink-placeholder font-bold">:</span>
                 <ScoreStepper value={away} onChange={setAway} t={t} />
               </div>
-              {err && <p className="text-flare text-xs text-center">{err}</p>}
+
+              {err && (
+                <p className="text-flare text-xs text-center">{err}</p>
+              )}
+
               <button
                 onClick={save}
                 disabled={saving}
@@ -172,7 +297,11 @@ function ScoreStepper({ value, onChange, t }) {
       >
         −
       </button>
-      <span className="font-tabular text-2xl font-bold text-ink w-7 text-center">{value}</span>
+
+      <span className="font-tabular text-2xl font-bold text-ink w-7 text-center">
+        {value}
+      </span>
+
       <button
         type="button"
         onClick={() => onChange(Math.min(30, value + 1))}
