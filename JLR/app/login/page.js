@@ -45,6 +45,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <header className="flex items-center justify-between mb-5">
             <img src="/jlr-logo-tan.png" alt="JLR" className="h-8 w-auto opacity-80" />
+
             <button
               type="button"
               onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
@@ -61,16 +62,16 @@ export default function LoginPage() {
           </header>
 
           <div className="relative rounded-card border border-card-border/70 bg-card shadow-card backdrop-blur-xl overflow-hidden">
-            <div className="px-0 pt-4 pb-6 text-center">
+            <div className="px-0 pt-0 pb-6 text-center">
               <div
-                className="w-full h-80 mb-3 -mt-2"
+                className="w-full h-[350px] mb-2 -mt-1"
                 style={{
                   backgroundImage: 'url(/trophy-hero-sm.png)',
                   backgroundSize: 'cover',
-                  backgroundPosition: 'center top',
+                  backgroundPosition: 'center -25px',
                   backgroundRepeat: 'no-repeat',
-                  maskImage: 'linear-gradient(to bottom, black 92%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 92%, transparent 100%)',
+                  maskImage: 'linear-gradient(to bottom, black 97%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 97%, transparent 100%)',
                 }}
                 role="img"
                 aria-label="World Cup trophy"
