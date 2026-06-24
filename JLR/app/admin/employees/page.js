@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../../../lib/i18n/LocaleContext';
 
 export default function AdminEmployeesPage() {
   const { t, locale } = useLocale();
   const [employees, setEmployees] = useState(null);
   const [departments, setDepartments] = useState([]);
+  const [search, setSearch] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', employeeCode: '', departmentId: '', role: 'EMPLOYEE' });
@@ -21,6 +22,24 @@ export default function AdminEmployeesPage() {
     if (!d) return '';
     return locale === 'ar' ? d.nameAr || d.name : d.name;
   }
+
+  const filteredEmployees = useMemo(() => {
+    const list = employees || [];
+    const term = search.trim().toLowerCase();
+
+    if (!term) return list;
+
+    return list.filter((e) => {
+      const department = deptName(e.department);
+
+      return (
+        e.name?.toLowerCase().includes(term) ||
+        e.email?.toLowerCase().includes(term) ||
+        e.employeeCode?.toLowerCase().includes(term) ||
+        department?.toLowerCase().includes(term)
+      );
+    });
+  }, [employees, search, locale]);
 
   async function load() {
     const [empRes, deptRes] = await Promise.all([
@@ -121,12 +140,13 @@ export default function AdminEmployeesPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="font-display font-bold text-2xl text-ink">{t('admin_employees_title')}</h1>
           <p className="text-ink-faint text-sm mt-1">{t('admin_employees_subtitle')}</p>
         </div>
+
         <div className="flex gap-2">
           <label className="cursor-pointer rounded-xl bg-card-soft border border-card-border/60 px-4 py-2.5 text-sm font-semibold text-ink-body hover:bg-white/60 focus-ring">
             {importing ? t('admin_employees_importing') : t('admin_employees_import')}
@@ -139,6 +159,7 @@ export default function AdminEmployeesPage() {
               disabled={importing}
             />
           </label>
+
           <button
             onClick={startAdd}
             className="rounded-xl bg-gold text-white px-4 py-2.5 text-sm font-semibold hover:bg-gold-dark focus-ring"
@@ -150,6 +171,23 @@ export default function AdminEmployeesPage() {
 
       <p className="text-ink-faint text-xs">{t('admin_employees_importHint')}</p>
 
+      <div className="rounded-card bg-card-soft border border-card-border/60 p-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, email, employee ID, or department..."
+            className="w-full md:max-w-md rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus-ring"
+          />
+
+          <p className="text-sm text-ink-faint">
+            Showing <span className="font-semibold text-ink">{filteredEmployees.length}</span> of{' '}
+            <span className="font-semibold text-ink">{employees?.length || 0}</span> employees
+          </p>
+        </div>
+      </div>
+
       {importResult && (
         <div className="rounded-xl border border-card-border/60 bg-card-soft p-4 text-sm">
           {importResult.error ? (
@@ -160,11 +198,14 @@ export default function AdminEmployeesPage() {
                 {importResult.imported} {t('admin_employees_importSuccess')}
                 {importResult.skipped > 0 && `, ${importResult.skipped} ${t('admin_employees_importErrors')}`}
               </p>
+
               {importResult.createdCredentials?.length > 0 && (
                 <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border border-card-border/50 divide-y divide-card-border/40">
                   {importResult.createdCredentials.map((c) => (
                     <div key={c.email} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
-                      <span className="text-ink-body truncate">{c.name} ({c.email})</span>
+                      <span className="text-ink-body truncate">
+                        {c.name} ({c.email})
+                      </span>
                       <span className="font-tabular text-gold-dark shrink-0">{c.password}</span>
                     </div>
                   ))}
@@ -185,6 +226,7 @@ export default function AdminEmployeesPage() {
                 className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
               />
             </Field>
+
             <Field label={t('admin_employees_email')}>
               <input
                 type="email"
@@ -193,6 +235,7 @@ export default function AdminEmployeesPage() {
                 className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
               />
             </Field>
+
             <Field label={t('admin_employees_employeeId')}>
               <input
                 value={form.employeeCode}
@@ -200,6 +243,7 @@ export default function AdminEmployeesPage() {
                 className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
               />
             </Field>
+
             <Field label={t('admin_employees_department')}>
               <select
                 value={form.departmentId}
@@ -208,10 +252,13 @@ export default function AdminEmployeesPage() {
               >
                 <option value="">—</option>
                 {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{deptName(d)}</option>
+                  <option key={d.id} value={d.id}>
+                    {deptName(d)}
+                  </option>
                 ))}
               </select>
             </Field>
+
             <Field label={t('admin_employees_role')}>
               <select
                 value={form.role}
@@ -223,7 +270,9 @@ export default function AdminEmployeesPage() {
               </select>
             </Field>
           </div>
+
           {error && <p className="text-flare text-sm">{error}</p>}
+
           <div className="flex gap-2">
             <button
               onClick={save}
@@ -232,6 +281,7 @@ export default function AdminEmployeesPage() {
             >
               {t('admin_employees_save')}
             </button>
+
             <button
               onClick={() => setShowAddForm(false)}
               className="rounded-xl bg-white/60 border border-card-border/60 px-4 py-2 text-sm font-semibold text-ink-body focus-ring"
@@ -254,8 +304,9 @@ export default function AdminEmployeesPage() {
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-card-border/40">
-            {employees?.map((e) => (
+            {filteredEmployees.map((e) => (
               <tr key={e.id}>
                 <td className="px-4 py-3 text-ink font-medium">{e.name}</td>
                 <td className="px-4 py-3 text-ink-body">{e.email}</td>
@@ -263,13 +314,24 @@ export default function AdminEmployeesPage() {
                 <td className="px-4 py-3 text-ink-body">{deptName(e.department)}</td>
                 <td className="px-4 py-3 font-tabular text-gold-dark font-semibold">{e.totalPoints}</td>
                 <td className="px-4 py-3 text-end whitespace-nowrap">
-                  <button onClick={() => startEdit(e)} className="text-gold-dark text-xs font-semibold me-3 focus-ring">
+                  <button
+                    onClick={() => startEdit(e)}
+                    className="text-gold-dark text-xs font-semibold me-3 focus-ring"
+                  >
                     {t('edit')}
                   </button>
-                  <button onClick={() => resetPassword(e)} className="text-ink-body text-xs font-semibold me-3 focus-ring">
+
+                  <button
+                    onClick={() => resetPassword(e)}
+                    className="text-ink-body text-xs font-semibold me-3 focus-ring"
+                  >
                     {t('admin_employees_resetPassword')}
                   </button>
-                  <button onClick={() => remove(e)} className="text-flare text-xs font-semibold focus-ring">
+
+                  <button
+                    onClick={() => remove(e)}
+                    className="text-flare text-xs font-semibold focus-ring"
+                  >
                     {t('admin_employees_delete')}
                   </button>
                 </td>
@@ -277,8 +339,11 @@ export default function AdminEmployeesPage() {
             ))}
           </tbody>
         </table>
-        {employees?.length === 0 && (
-          <p className="text-ink-faint text-center py-10 text-sm">{t('admin_employees_noneYet')}</p>
+
+        {employees && filteredEmployees.length === 0 && (
+          <p className="text-ink-faint text-center py-10 text-sm">
+            No employees found.
+          </p>
         )}
       </div>
 
@@ -288,11 +353,14 @@ export default function AdminEmployeesPage() {
             <h3 className="font-bold text-ink mb-1">
               {t('admin_employees_newPasswordFor')} {credentialModal.name}
             </h3>
+
             <p className="text-ink-faint text-xs mb-4">{t('admin_employees_passwordNote')}</p>
+
             <div className="rounded-xl bg-card-soft border border-card-border/60 px-4 py-3 flex items-center justify-between mb-4">
               <span className="font-tabular text-lg font-bold text-gold-dark">{credentialModal.password}</span>
               <CopyButton text={credentialModal.password} t={t} />
             </div>
+
             <button
               onClick={() => setCredentialModal(null)}
               className="w-full rounded-xl bg-gold text-white py-2.5 text-sm font-semibold hover:bg-gold-dark focus-ring"
@@ -317,6 +385,7 @@ function Field({ label, children }) {
 
 function CopyButton({ text, t }) {
   const [copied, setCopied] = useState(false);
+
   return (
     <button
       onClick={() => {
