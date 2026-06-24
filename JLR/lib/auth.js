@@ -18,10 +18,14 @@ export const authOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         employeeCode: { label: 'Employee ID', type: 'text' },
+        password: { label: 'Employee ID', type: 'text' },
       },
       async authorize(credentials) {
         const email = cleanValue(credentials?.email).toLowerCase();
-        const employeeCode = cleanValue(credentials?.employeeCode);
+
+        const employeeCode = cleanValue(
+          credentials?.employeeCode || credentials?.password
+        );
 
         if (!email || !employeeCode) {
           return null;
