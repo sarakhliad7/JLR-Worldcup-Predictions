@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from '../lib/i18n/LocaleContext';
 
 const TEAM_FLAGS = {
@@ -30,10 +30,10 @@ const TEAM_FLAGS = {
   Paraguay: '🇵🇾',
   Portugal: '🇵🇹',
   Qatar: '🇶🇦',
-  Saudi Arabia: '🇸🇦',
+  'Saudi Arabia': '🇸🇦',
   Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
-  South Africa: '🇿🇦',
-  South Korea: '🇰🇷',
+  'South Africa': '🇿🇦',
+  'South Korea': '🇰🇷',
   Spain: '🇪🇸',
   Switzerland: '🇨🇭',
   Tunisia: '🇹🇳',
@@ -42,8 +42,8 @@ const TEAM_FLAGS = {
   USA: '🇺🇸',
   'United States': '🇺🇸',
   'United States of America': '🇺🇸',
-  'Czech Republic': '🇨🇿',
   Czechia: '🇨🇿',
+  'Czech Republic': '🇨🇿',
   'Bosnia & Herzegovina': '🇧🇦',
   'Bosnia and Herzegovina': '🇧🇦',
   'New Zealand': '🇳🇿',
@@ -62,23 +62,51 @@ const TEAM_FLAGS = {
   Nigeria: '🇳🇬',
 };
 
+function normalizeTeamName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/^[^\p{L}\p{N}]+/u, '')
+    .replace(/[^\p{L}\p{N}]+$/u, '');
+}
+
 function getTeamName(team, locale) {
   if (!team) return '';
-  return locale === 'ar' ? team.nameAr || team.nameEn : team.nameEn;
+
+  const englishName =
+    team.nameEn ||
+    team.name ||
+    team.teamName ||
+    team.country ||
+    team.label ||
+    '';
+
+  if (locale === 'ar') {
+    return team.nameAr || englishName;
+  }
+
+  return englishName;
 }
 
 function getTeamFlag(team, locale) {
   if (!team) return '⚽';
 
-  const nameEn = team.nameEn || '';
-  const displayName = getTeamName(team, locale);
+  const possibleNames = [
+    team.nameEn,
+    team.name,
+    team.teamName,
+    team.country,
+    team.label,
+    getTeamName(team, locale),
+  ]
+    .filter(Boolean)
+    .map(normalizeTeamName);
 
-  return (
-    team.flagEmoji ||
-    TEAM_FLAGS[nameEn] ||
-    TEAM_FLAGS[displayName] ||
-    '🏳️'
-  );
+  for (const name of possibleNames) {
+    if (TEAM_FLAGS[name]) return TEAM_FLAGS[name];
+  }
+
+  return team.flagEmoji || '🏳️';
 }
 
 function StatusBadge({ status, locked, t }) {
@@ -142,6 +170,16 @@ export default function MatchCard({ match, onSaved }) {
   const [editing, setEditing] = useState(!match.myPrediction);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    console.log('MATCH DEBUG:', {
+      id: match.id,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      homeTeamLabel: match.homeTeamLabel,
+      awayTeamLabel: match.awayTeamLabel,
+    });
+  }, [match]);
 
   const canPredict = match.homeTeam && match.awayTeam && !match.locked;
   const kickoff = new Date(match.kickoffAt);
