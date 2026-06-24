@@ -1,4 +1,4 @@
-// Seed script — adds JLR's real departments, the six achievement badges,
+﻿// Seed script â€” adds JLR's real departments, the six achievement badges,
 // and a sample admin + employee account for first login.
 // Run with: npm run db:seed
 
@@ -14,15 +14,15 @@ function hashPassword(password) {
 const prisma = new PrismaClient();
 
 const DEPARTMENTS = [
-  { name: 'Product & Pricing', nameAr: 'المنتجات والتسعير', shortCode: 'P&P', colorHex: '#D9A441' },
-  { name: 'Ordering', nameAr: 'الطلبات', shortCode: 'ORD', colorHex: '#8B7FD9' },
-  { name: 'HR', nameAr: 'الموارد البشرية', shortCode: 'HR', colorHex: '#2C9587' },
-  { name: 'Sales', nameAr: 'المبيعات', shortCode: 'SLS', colorHex: '#6FA8B8' },
-  { name: 'Marketing', nameAr: 'التسويق', shortCode: 'MKT', colorHex: '#E0599E' },
-  { name: 'Finance', nameAr: 'المالية', shortCode: 'FIN', colorHex: '#E2543A' },
-  { name: 'CRM', nameAr: 'علاقات العملاء', shortCode: 'CRM', colorHex: '#4F8FC0' },
-  { name: 'Aftersales', nameAr: 'خدمات ما بعد البيع', shortCode: 'AFS', colorHex: '#7BAE5C' },
-  { name: 'APO', nameAr: 'تخطيط العمليات والمبيعات', shortCode: 'APO', colorHex: '#B98A3D' },
+  { name: 'Product & Pricing', nameAr: 'ط§ظ„ظ…ظ†طھط¬ط§طھ ظˆط§ظ„طھط³ط¹ظٹط±', shortCode: 'P&P', colorHex: '#D9A441' },
+  { name: 'Ordering', nameAr: 'ط§ظ„ط·ظ„ط¨ط§طھ', shortCode: 'ORD', colorHex: '#8B7FD9' },
+  { name: 'HR', nameAr: 'ط§ظ„ظ…ظˆط§ط±ط¯ ط§ظ„ط¨ط´ط±ظٹط©', shortCode: 'HR', colorHex: '#2C9587' },
+  { name: 'Sales', nameAr: 'ط§ظ„ظ…ط¨ظٹط¹ط§طھ', shortCode: 'SLS', colorHex: '#6FA8B8' },
+  { name: 'Marketing', nameAr: 'ط§ظ„طھط³ظˆظٹظ‚', shortCode: 'MKT', colorHex: '#E0599E' },
+  { name: 'Finance', nameAr: 'ط§ظ„ظ…ط§ظ„ظٹط©', shortCode: 'FIN', colorHex: '#E2543A' },
+  { name: 'CRM', nameAr: 'ط¹ظ„ط§ظ‚ط§طھ ط§ظ„ط¹ظ…ظ„ط§ط،', shortCode: 'CRM', colorHex: '#4F8FC0' },
+  { name: 'Aftersales', nameAr: 'ط®ط¯ظ…ط§طھ ظ…ط§ ط¨ط¹ط¯ ط§ظ„ط¨ظٹط¹', shortCode: 'AFS', colorHex: '#7BAE5C' },
+  { name: 'APO', nameAr: 'طھط®ط·ظٹط· ط§ظ„ط¹ظ…ظ„ظٹط§طھ ظˆط§ظ„ظ…ط¨ظٹط¹ط§طھ', shortCode: 'APO', colorHex: '#B98A3D' },
 ];
 
 // Achievement display text now lives in lib/i18n/dictionary.js (keyed by `code`).
@@ -31,10 +31,10 @@ const DEPARTMENTS = [
 const ACHIEVEMENTS = [
   { code: 'astoori', name: 'Legend', description: 'Predicted an entire group correctly', icon: 'astoori' },
   { code: 'muhannak', name: 'Sharp Shooter', description: '5 correct in a row', icon: 'muhannak' },
-  { code: 'batal_tawaqqu', name: 'Prediction Champion', description: 'Hit the exact score', icon: 'batal_tawaqqu' },
+  { code: 'batal_tawaqqu', name: 'Prediction Accuracy', description: 'Hit the exact score', icon: 'batal_tawaqqu' },
   { code: 'wahsh_usboo', name: 'Weekly Beast', description: "All of a week's predictions correct", icon: 'wahsh_usboo' },
   { code: 'saed_mufajaat', name: 'Upset Hunter', description: 'Correctly called an underdog win', icon: 'saed_mufajaat' },
-  { code: 'sinbaq', name: 'Early Bird', description: 'Predicted 24 hours ahead', icon: 'sinbaq' },
+  { code: 'sinbaq', name: 'Early Predictor', description: 'Predicted 24 hours ahead', icon: 'sinbaq' },
 ];
 
 async function main() {
@@ -93,9 +93,9 @@ async function main() {
   await prisma.announcement.create({
     data: {
       title: 'Welcome to the JLR World Cup Predictions League!',
-      titleAr: 'مرحبًا بكم في دوري توقعات JLR!',
+      titleAr: 'ظ…ط±ط­ط¨ظ‹ط§ ط¨ظƒظ… ظپظٹ ط¯ظˆط±ظٹ طھظˆظ‚ط¹ط§طھ JLR!',
       body: 'Submit your predictions for every World Cup 2026 match and compete with your colleagues for the top spot. 6 points for an exact score, 3 points for the correct winner. Good luck!',
-      bodyAr: 'سجّل توقعاتك لكل مباريات كأس العالم 2026 وتسابق مع زملائك على القمة. 6 نقاط للنتيجة الدقيقة، 3 نقاط للفوز الصحيح. بالتوفيق!',
+      bodyAr: 'ط³ط¬ظ‘ظ„ طھظˆظ‚ط¹ط§طھظƒ ظ„ظƒظ„ ظ…ط¨ط§ط±ظٹط§طھ ظƒط£ط³ ط§ظ„ط¹ط§ظ„ظ… 2026 ظˆطھط³ط§ط¨ظ‚ ظ…ط¹ ط²ظ…ظ„ط§ط¦ظƒ ط¹ظ„ظ‰ ط§ظ„ظ‚ظ…ط©. 6 ظ†ظ‚ط§ط· ظ„ظ„ظ†طھظٹط¬ط© ط§ظ„ط¯ظ‚ظٹظ‚ط©طŒ 3 ظ†ظ‚ط§ط· ظ„ظ„ظپظˆط² ط§ظ„طµط­ظٹط­. ط¨ط§ظ„طھظˆظپظٹظ‚!',
       pinned: true,
     },
   });
@@ -111,3 +111,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
