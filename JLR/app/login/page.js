@@ -61,16 +61,16 @@ export default function LoginPage() {
           </header>
 
           <div className="relative rounded-card border border-card-border/70 bg-card shadow-card backdrop-blur-xl overflow-hidden">
-            <div className="px-0 pt-6 pb-6 text-center">
+            <div className="px-0 pt-4 pb-6 text-center">
               <div
-                className="w-full h-72 mb-3"
+                className="w-full h-80 mb-3 -mt-2"
                 style={{
                   backgroundImage: 'url(/trophy-hero-sm.png)',
                   backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundPosition: 'center top',
                   backgroundRepeat: 'no-repeat',
-                  maskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to bottom, black 88%, transparent 100%)',
+                  maskImage: 'linear-gradient(to bottom, black 92%, transparent 100%)',
+                  WebkitMaskImage: 'linear-gradient(to bottom, black 92%, transparent 100%)',
                 }}
                 role="img"
                 aria-label="World Cup trophy"
