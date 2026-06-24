@@ -1,12 +1,19 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from '../../lib/i18n/LocaleContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { status } = useSession();
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/predictions');
+    }
+  }, [status, router]);
   const { t, locale, setLocale } = useLocale();
   const [email, setEmail] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
@@ -32,7 +39,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/predictions');
+    window.location.href = '/predictions';
   }
 
   return (
