@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const content = String.raw`'use client';
 
 import { useLocale } from '../lib/i18n/LocaleContext';
 
@@ -88,3 +90,7 @@ export default function AchievementBadge({ code, unlocked }) {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('components/AchievementBadge.js', content, 'utf8');
+console.log('AchievementBadge.js updated safely');
