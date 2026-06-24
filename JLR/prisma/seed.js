@@ -29,12 +29,12 @@ const DEPARTMENTS = [
 // This table only needs the code + icon key; name/description here are for
 // admin reference only (e.g. when browsing the DB in Prisma Studio).
 const ACHIEVEMENTS = [
-  { code: 'astoori', name: 'Legend', description: 'Predicted an entire group correctly', icon: 'astoori' },
-  { code: 'muhannak', name: 'Sharp Shooter', description: '5 correct in a row', icon: 'muhannak' },
-  { code: 'batal_tawaqqu', name: 'Prediction Champion', description: 'Hit the exact score', icon: 'batal_tawaqqu' },
-  { code: 'wahsh_usboo', name: 'Weekly Beast', description: "All of a week's predictions correct", icon: 'wahsh_usboo' },
-  { code: 'saed_mufajaat', name: 'Upset Hunter', description: 'Correctly called an underdog win', icon: 'saed_mufajaat' },
-  { code: 'sinbaq', name: 'Early Bird', description: 'Predicted 24 hours ahead', icon: 'sinbaq' },
+  { code: 'astoori', name: 'Full Group Prediction', description: 'Predicted all matches in a group', icon: 'astoori' },
+  { code: 'muhannak', name: 'Winning Streak', description: '5 correct predictions in a row', icon: 'muhannak' },
+  { code: 'batal_tawaqqu', name: 'Prediction Accuracy', description: 'Correctly predicted the exact score', icon: 'batal_tawaqqu' },
+  { code: 'wahsh_usboo', name: 'Star of the Week', description: "Best weekly prediction performance", icon: 'wahsh_usboo' },
+  { code: 'saed_mufajaat', name: 'Upset Predictor', description: 'Correctly predicted an underdog win', icon: 'saed_mufajaat' },
+  { code: 'sinbaq', name: 'Early Predictor', description: 'Submitted predictions 24 hours early', icon: 'sinbaq' },
 ];
 
 async function main() {
