@@ -1,5 +1,11 @@
-import CredentialsProvider from 'next-auth/providers/credentials';
+﻿import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
+
+function cleanValue(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, '');
+}
 
 export const authOptions = {
   session: { strategy: 'jwt' },
@@ -14,18 +20,28 @@ export const authOptions = {
         employeeCode: { label: 'Employee ID', type: 'text' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.employeeCode) {
+        const email = cleanValue(credentials?.email).toLowerCase();
+        const employeeCode = cleanValue(credentials?.employeeCode);
+
+        if (!email || !employeeCode) {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.trim().toLowerCase() },
+        const user = await prisma.user.findFirst({
+          where: {
+            email: {
+              equals: email,
+              mode: 'insensitive',
+            },
+          },
           include: { department: true },
         });
 
         if (!user) return null;
 
-        if (user.employeeCode !== credentials.employeeCode.trim()) return null;
+        if (cleanValue(user.employeeCode) !== employeeCode) {
+          return null;
+        }
 
         return {
           id: user.id,
