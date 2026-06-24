@@ -34,7 +34,11 @@ export async function middleware(req) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: true,
+  });
 
   if (!token && pathname.startsWith('/api')) {
     return NextResponse.json({ error: 'err_mustLogin' }, { status: 401 });
