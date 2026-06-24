@@ -10,6 +10,7 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useLocale();
   const [email, setEmail] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
+  const [showEmployeeCode, setShowEmployeeCode] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -114,7 +115,7 @@ export default function LoginPage() {
                         {t('login_employeeId')}
                       </label>
                       <input
-                        type="text"
+                        type={showEmployeeCode ? 'text' : 'password'}
                         required
                         value={employeeCode}
                         onChange={(e) => setEmployeeCode(e.target.value)}
@@ -122,6 +123,14 @@ export default function LoginPage() {
                         className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmployeeCode((s) => !s)}
+                      className="text-ink-faint focus-ring shrink-0 mt-0.5"
+                      aria-label={showEmployeeCode ? 'Hide employee ID' : 'Show employee ID'}
+                    >
+                      {showEmployeeCode ? <EyeIcon /> : <EyeOffIcon />}
+                    </button>
                   </div>
                 </div>
 
@@ -174,6 +183,25 @@ function IdIcon() {
       <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
       <circle cx="9" cy="12" r="2" stroke="currentColor" strokeWidth="1.6" />
       <path d="M14 10h4M14 14h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
