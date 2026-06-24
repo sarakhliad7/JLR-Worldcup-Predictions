@@ -8,23 +8,28 @@ export default function ChampionChallengeCard() {
   const [data, setData] = useState(null);
   const [selecting, setSelecting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
 
   useEffect(() => {
     fetch('/api/champion-pick').then((r) => r.json()).then(setData);
   }, []);
 
-  async function pick(teamId) {
+  async function pick() {
+    if (!selectedTeamId) return;
+
     setSaving(true);
     try {
       const res = await fetch('/api/champion-pick', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId }),
+        body: JSON.stringify({ teamId: selectedTeamId }),
       });
+
       if (res.ok) {
         const fresh = await fetch('/api/champion-pick').then((r) => r.json());
         setData(fresh);
         setSelecting(false);
+        setSelectedTeamId('');
       }
     } finally {
       setSaving(false);
@@ -54,7 +59,10 @@ export default function ChampionChallengeCard() {
             <span className="text-ink font-semibold text-sm">{teamName(existingPick.team)}</span>
           </div>
           {!locked && (
-            <button onClick={() => setSelecting(true)} className="text-gold-dark text-sm font-semibold focus-ring">
+            <button
+              onClick={() => setSelecting(true)}
+              className="text-gold-dark text-sm font-semibold focus-ring"
+            >
               {t('change')}
             </button>
           )}
@@ -62,21 +70,31 @@ export default function ChampionChallengeCard() {
       ) : locked ? (
         <p className="text-ink-faint text-sm">{t('champion_locked')}</p>
       ) : (
-        <select
-          disabled={saving}
-          defaultValue=""
-          onChange={(e) => e.target.value && pick(e.target.value)}
-          className="w-full rounded-xl bg-white/60 border border-card-border/70 text-ink px-4 py-2.5 text-sm focus-ring"
-        >
-          <option value="" disabled>
-            {t('champion_selectTeam')}
-          </option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {teamName(team)}
+        <div className="space-y-2">
+          <select
+            disabled={saving}
+            value={selectedTeamId}
+            onChange={(e) => setSelectedTeamId(e.target.value)}
+            className="w-full rounded-xl bg-white/60 border border-card-border/70 text-ink px-4 py-2.5 text-sm focus-ring"
+          >
+            <option value="" disabled>
+              {t('champion_selectTeam')}
             </option>
-          ))}
-        </select>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {teamName(team)}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={pick}
+            disabled={saving || !selectedTeamId}
+            className="w-full rounded-xl bg-gold text-white font-semibold py-2.5 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
       )}
     </div>
   );
