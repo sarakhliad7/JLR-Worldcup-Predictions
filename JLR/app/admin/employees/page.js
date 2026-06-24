@@ -8,9 +8,16 @@ export default function AdminEmployeesPage() {
   const [employees, setEmployees] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', employeeCode: '', departmentId: '', role: 'EMPLOYEE' });
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    employeeCode: '',
+    departmentId: '',
+    role: 'EMPLOYEE',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [credentialModal, setCredentialModal] = useState(null);
@@ -27,25 +34,29 @@ export default function AdminEmployeesPage() {
     const list = employees || [];
     const term = search.trim().toLowerCase();
 
-    if (!term) return list;
-
     return list.filter((e) => {
       const department = deptName(e.department);
 
-      return (
+      const matchesSearch =
+        !term ||
         e.name?.toLowerCase().includes(term) ||
         e.email?.toLowerCase().includes(term) ||
         e.employeeCode?.toLowerCase().includes(term) ||
-        department?.toLowerCase().includes(term)
-      );
+        department?.toLowerCase().includes(term);
+
+      const matchesDepartment =
+        !departmentFilter || e.department?.id === departmentFilter;
+
+      return matchesSearch && matchesDepartment;
     });
-  }, [employees, search, locale]);
+  }, [employees, search, departmentFilter, locale]);
 
   async function load() {
     const [empRes, deptRes] = await Promise.all([
       fetch('/api/admin/employees').then((r) => r.json()),
       fetch('/api/departments').then((r) => r.json()),
     ]);
+
     setEmployees(empRes.employees || []);
     setDepartments(deptRes.departments || []);
   }
@@ -55,7 +66,13 @@ export default function AdminEmployeesPage() {
   }, []);
 
   function startAdd() {
-    setForm({ name: '', email: '', employeeCode: '', departmentId: '', role: 'EMPLOYEE' });
+    setForm({
+      name: '',
+      email: '',
+      employeeCode: '',
+      departmentId: '',
+      role: 'EMPLOYEE',
+    });
     setEditingId(null);
     setShowAddForm(true);
     setError('');
@@ -77,21 +94,30 @@ export default function AdminEmployeesPage() {
   async function save() {
     setSaving(true);
     setError('');
+
     try {
-      const url = editingId ? `/api/admin/employees/${editingId}` : '/api/admin/employees';
+      const url = editingId
+        ? `/api/admin/employees/${editingId}`
+        : '/api/admin/employees';
+
       const method = editingId ? 'PATCH' : 'POST';
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(t(data.error));
 
       setShowAddForm(false);
+
       if (data.plainPassword) {
         setCredentialModal({ ...data.employee, password: data.plainPassword });
       }
+
       load();
     } catch (e) {
       setError(e.message);
@@ -106,7 +132,9 @@ export default function AdminEmployeesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resetPassword: true }),
     });
+
     const data = await res.json();
+
     if (res.ok && data.plainPassword) {
       setCredentialModal({ ...data.employee, password: data.plainPassword });
     }
@@ -114,28 +142,42 @@ export default function AdminEmployeesPage() {
 
   async function remove(emp) {
     if (!confirm(t('admin_employees_deleteConfirm'))) return;
+
     await fetch(`/api/admin/employees/${emp.id}`, { method: 'DELETE' });
     load();
   }
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
+
     if (!file) return;
+
     setImporting(true);
     setImportResult(null);
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/admin/employees/import', { method: 'POST', body: formData });
+
+      const res = await fetch('/api/admin/employees/import', {
+        method: 'POST',
+        body: formData,
+      });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(t(data.error));
+
       setImportResult(data);
       load();
     } catch (err) {
       setImportResult({ error: err.message });
     } finally {
       setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }
 
@@ -143,8 +185,12 @@ export default function AdminEmployeesPage() {
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-display font-bold text-2xl text-ink">{t('admin_employees_title')}</h1>
-          <p className="text-ink-faint text-sm mt-1">{t('admin_employees_subtitle')}</p>
+          <h1 className="font-display font-bold text-2xl text-ink">
+            {t('admin_employees_title')}
+          </h1>
+          <p className="text-ink-faint text-sm mt-1">
+            {t('admin_employees_subtitle')}
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -169,21 +215,59 @@ export default function AdminEmployeesPage() {
         </div>
       </div>
 
-      <p className="text-ink-faint text-xs">{t('admin_employees_importHint')}</p>
+      <p className="text-ink-faint text-xs">
+        {t('admin_employees_importHint')}
+      </p>
 
       <div className="rounded-card bg-card-soft border border-card-border/60 p-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, employee ID, or department..."
-            className="w-full md:max-w-md rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus-ring"
-          />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, email, employee ID, or department..."
+              className="w-full md:max-w-md rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus-ring"
+            />
+
+            <select
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full md:w-64 rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink focus-ring"
+            >
+              <option value="">All Departments</option>
+
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {deptName(d)}
+                </option>
+              ))}
+            </select>
+
+            {(search || departmentFilter) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setDepartmentFilter('');
+                }}
+                className="rounded-xl bg-white/60 border border-card-border/60 px-4 py-3 text-sm font-semibold text-ink-body focus-ring"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
           <p className="text-sm text-ink-faint">
-            Showing <span className="font-semibold text-ink">{filteredEmployees.length}</span> of{' '}
-            <span className="font-semibold text-ink">{employees?.length || 0}</span> employees
+            Showing{' '}
+            <span className="font-semibold text-ink">
+              {filteredEmployees.length}
+            </span>{' '}
+            of{' '}
+            <span className="font-semibold text-ink">
+              {employees?.length || 0}
+            </span>{' '}
+            employees
           </p>
         </div>
       </div>
@@ -196,17 +280,23 @@ export default function AdminEmployeesPage() {
             <>
               <p className="text-ink font-semibold">
                 {importResult.imported} {t('admin_employees_importSuccess')}
-                {importResult.skipped > 0 && `, ${importResult.skipped} ${t('admin_employees_importErrors')}`}
+                {importResult.skipped > 0 &&
+                  `, ${importResult.skipped} ${t('admin_employees_importErrors')}`}
               </p>
 
               {importResult.createdCredentials?.length > 0 && (
                 <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border border-card-border/50 divide-y divide-card-border/40">
                   {importResult.createdCredentials.map((c) => (
-                    <div key={c.email} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
+                    <div
+                      key={c.email}
+                      className="px-3 py-2 text-xs flex items-center justify-between gap-2"
+                    >
                       <span className="text-ink-body truncate">
                         {c.name} ({c.email})
                       </span>
-                      <span className="font-tabular text-gold-dark shrink-0">{c.password}</span>
+                      <span className="font-tabular text-gold-dark shrink-0">
+                        {c.password}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -251,6 +341,7 @@ export default function AdminEmployeesPage() {
                 className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
               >
                 <option value="">—</option>
+
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {deptName(d)}
@@ -296,11 +387,21 @@ export default function AdminEmployeesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-card-border/60 text-ink-faint text-start">
-              <th className="px-4 py-3 text-start font-semibold">{t('admin_employees_name')}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t('admin_employees_email')}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t('admin_employees_employeeId')}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t('admin_employees_department')}</th>
-              <th className="px-4 py-3 text-start font-semibold">{t('profile_points')}</th>
+              <th className="px-4 py-3 text-start font-semibold">
+                {t('admin_employees_name')}
+              </th>
+              <th className="px-4 py-3 text-start font-semibold">
+                {t('admin_employees_email')}
+              </th>
+              <th className="px-4 py-3 text-start font-semibold">
+                {t('admin_employees_employeeId')}
+              </th>
+              <th className="px-4 py-3 text-start font-semibold">
+                {t('admin_employees_department')}
+              </th>
+              <th className="px-4 py-3 text-start font-semibold">
+                {t('profile_points')}
+              </th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -310,9 +411,15 @@ export default function AdminEmployeesPage() {
               <tr key={e.id}>
                 <td className="px-4 py-3 text-ink font-medium">{e.name}</td>
                 <td className="px-4 py-3 text-ink-body">{e.email}</td>
-                <td className="px-4 py-3 text-ink-body font-tabular">{e.employeeCode}</td>
-                <td className="px-4 py-3 text-ink-body">{deptName(e.department)}</td>
-                <td className="px-4 py-3 font-tabular text-gold-dark font-semibold">{e.totalPoints}</td>
+                <td className="px-4 py-3 text-ink-body font-tabular">
+                  {e.employeeCode}
+                </td>
+                <td className="px-4 py-3 text-ink-body">
+                  {deptName(e.department)}
+                </td>
+                <td className="px-4 py-3 font-tabular text-gold-dark font-semibold">
+                  {e.totalPoints}
+                </td>
                 <td className="px-4 py-3 text-end whitespace-nowrap">
                   <button
                     onClick={() => startEdit(e)}
@@ -354,10 +461,14 @@ export default function AdminEmployeesPage() {
               {t('admin_employees_newPasswordFor')} {credentialModal.name}
             </h3>
 
-            <p className="text-ink-faint text-xs mb-4">{t('admin_employees_passwordNote')}</p>
+            <p className="text-ink-faint text-xs mb-4">
+              {t('admin_employees_passwordNote')}
+            </p>
 
             <div className="rounded-xl bg-card-soft border border-card-border/60 px-4 py-3 flex items-center justify-between mb-4">
-              <span className="font-tabular text-lg font-bold text-gold-dark">{credentialModal.password}</span>
+              <span className="font-tabular text-lg font-bold text-gold-dark">
+                {credentialModal.password}
+              </span>
               <CopyButton text={credentialModal.password} t={t} />
             </div>
 
@@ -377,7 +488,9 @@ export default function AdminEmployeesPage() {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="block text-xs font-semibold text-ink-label mb-1">{label}</span>
+      <span className="block text-xs font-semibold text-ink-label mb-1">
+        {label}
+      </span>
       {children}
     </label>
   );
