@@ -282,10 +282,10 @@ export const dictionary = {
 
     champion_eyebrow: 'تحدي البطل',
     champion_title: 'توقّع بطل كأس العالم',
-    champion_bonus: '+30 نقطة لو أصبت',
+    champion_bonus: '+20 نقطة لو أصبت · آخر موعد 3 July',
     champion_selectTeam: 'اختر الفريق',
     champion_locked: 'أُغلق التحدي لهذا الموسم',
-    champion_lockedError: 'أُغلق تحدي البطل بعد بداية دور الـ32',
+    champion_lockedError: 'أُغلق تحدي البطل بعد 3 July',
     champion_chooseTeamError: 'اختر فريقًا',
 
     leaderboard_title: 'لوحة المتصدرين',
