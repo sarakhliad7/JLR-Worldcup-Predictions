@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import AchievementBadge from '../../components/AchievementBadge';
 import { useLocale } from '../../lib/i18n/LocaleContext';
 
 export default function ProfilePage() {
@@ -25,8 +24,7 @@ export default function ProfilePage() {
     return <p className="text-ink-faint text-center py-10 text-sm">{t('loading')}</p>;
   }
 
-  const { user, achievements } = data;
-  const unlockedCount = achievements.filter((a) => a.unlocked).length;
+  const { user } = data;
   const departmentName = locale === 'ar' ? user.departmentAr || user.department : user.department;
   const isAdmin = session?.user?.role === 'ADMIN';
 
@@ -48,6 +46,7 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-white/40 rounded-xl py-3 text-center">
             <p className="font-tabular text-2xl font-bold text-flare">🔥 {user.currentStreak}</p>
@@ -68,18 +67,6 @@ export default function ProfilePage() {
           {t('admin_title')} →
         </Link>
       )}
-
-      <div>
-        <div className="flex items-baseline justify-between mb-3">
-          <h3 className="font-bold text-ink">{t('profile_achievements')}</h3>
-          <span className="text-ink-faint text-xs">{unlockedCount}/{achievements.length} {t('profile_unlocked')}</span>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          {achievements.map((a) => (
-            <AchievementBadge key={a.code} {...a} />
-          ))}
-        </div>
-      </div>
 
       <button
         onClick={() => signOut({ callbackUrl: '/login' })}
