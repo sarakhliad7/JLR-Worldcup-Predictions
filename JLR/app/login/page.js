@@ -15,7 +15,7 @@ export default function LoginPage() {
     }
   }, [status, router]);
   const { t, locale, setLocale } = useLocale();
-  const [email, setEmail] = useState('');
+  const [idNumber, setIdNumber] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
   const [showEmployeeCode, setShowEmployeeCode] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const res = await signIn('credentials', {
-      email: email.trim().toLowerCase(),
+      idNumber: idNumber.trim(),
       employeeCode: employeeCode.trim(),
       redirect: false,
     });
@@ -104,14 +104,14 @@ export default function LoginPage() {
                       <MailIcon />
                       <div className="flex-1">
                         <label className="block text-sm font-bold text-ink-label mb-1">
-                          {t('login_email')}
+                          'ID Number'
                         </label>
                         <input
-                          type="email"
+                          type="text"
                           required
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          placeholder={t('login_emailPlaceholder')}
+                          value={idNumber}
+                          onChange={(e) => setIdNumber(e.target.value)}
+                          placeholder='Enter your ID number'
                           className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
                         />
                       </div>

@@ -14,6 +14,7 @@ export default function AdminEmployeesPage() {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    idNumber: '',
     employeeCode: '',
     departmentId: '',
     role: 'EMPLOYEE',
@@ -41,6 +42,7 @@ export default function AdminEmployeesPage() {
         !term ||
         e.name?.toLowerCase().includes(term) ||
         e.email?.toLowerCase().includes(term) ||
+        e.idNumber?.toLowerCase().includes(term) ||
         e.employeeCode?.toLowerCase().includes(term) ||
         department?.toLowerCase().includes(term);
 
@@ -82,6 +84,7 @@ export default function AdminEmployeesPage() {
     setForm({
       name: emp.name,
       email: emp.email,
+      idNumber: emp.idNumber || '',
       employeeCode: emp.employeeCode,
       departmentId: emp.department?.id || '',
       role: emp.role,
@@ -226,7 +229,7 @@ export default function AdminEmployeesPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, employee ID, or department..."
+              placeholder="Search by name, ID number, employee ID, email, or department..."
               className="w-full md:max-w-md rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus-ring"
             />
 
@@ -326,6 +329,14 @@ export default function AdminEmployeesPage() {
               />
             </Field>
 
+            <Field label="ID Number">
+              <input
+                value={form.idNumber}
+                onChange={(e) => setForm({ ...form, idNumber: e.target.value })}
+                className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
+              />
+            </Field>
+
             <Field label={t('admin_employees_employeeId')}>
               <input
                 value={form.employeeCode}
@@ -394,6 +405,9 @@ export default function AdminEmployeesPage() {
                 {t('admin_employees_email')}
               </th>
               <th className="px-4 py-3 text-start font-semibold">
+                ID Number
+              </th>
+              <th className="px-4 py-3 text-start font-semibold">
                 {t('admin_employees_employeeId')}
               </th>
               <th className="px-4 py-3 text-start font-semibold">
@@ -411,6 +425,9 @@ export default function AdminEmployeesPage() {
               <tr key={e.id}>
                 <td className="px-4 py-3 text-ink font-medium">{e.name}</td>
                 <td className="px-4 py-3 text-ink-body">{e.email}</td>
+                <td className="px-4 py-3 text-ink-body font-tabular">
+                  {e.idNumber || '-'}
+                </td>
                 <td className="px-4 py-3 text-ink-body font-tabular">
                   {e.employeeCode}
                 </td>
