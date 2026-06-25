@@ -17,7 +17,7 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useLocale();
   const [idNumber, setIdNumber] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
-  const [showEmployeeCode, setShowEmployeeCode] = useState(false);
+  const [showIdNumber, setShowIdNumber] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -101,18 +101,19 @@ export default function LoginPage() {
                 <form onSubmit={handleSubmit} className="mt-7 space-y-4 text-start">
                   <div className="rounded-2xl bg-card-soft border border-card-border/70 shadow-sm overflow-hidden">
                     <div className="px-4 pt-4 pb-3 border-b border-card-border/60 flex items-start gap-3">
-                      <MailIcon />
+                      <IdIcon />
                       <div className="flex-1">
                         <label className="block text-sm font-bold text-ink-label mb-1">
-                          'ID Number'
+                          {t('login_employeeId')}
                         </label>
                         <input
                           type="text"
                           required
-                          value={idNumber}
-                          onChange={(e) => setIdNumber(e.target.value)}
-                          placeholder='Enter your ID number'
+                          value={employeeCode}
+                          onChange={(e) => setEmployeeCode(e.target.value)}
+                          placeholder={t('login_employeeIdPlaceholder')}
                           className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
+                          dir="ltr"
                         />
                       </div>
                     </div>
@@ -121,25 +122,26 @@ export default function LoginPage() {
                       <IdIcon />
                       <div className="flex-1">
                         <label className="block text-sm font-bold text-ink-label mb-1">
-                          {t('login_employeeId')}
+                          {t('login_email')}
                         </label>
                         <input
-                          type={showEmployeeCode ? 'text' : 'password'}
+                          type={showIdNumber ? 'text' : 'password'}
                           required
-                          value={employeeCode}
-                          onChange={(e) => setEmployeeCode(e.target.value)}
-                          placeholder={t('login_employeeIdPlaceholder')}
+                          value={idNumber}
+                          onChange={(e) => setIdNumber(e.target.value)}
+                          placeholder={t('login_emailPlaceholder')}
                           className="w-full bg-transparent outline-none text-ink placeholder:text-ink-placeholder"
+                          dir="ltr"
                         />
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => setShowEmployeeCode((s) => !s)}
+                        onClick={() => setShowIdNumber((s) => !s)}
                         className="text-ink-faint focus-ring shrink-0 mt-0.5"
-                        aria-label={showEmployeeCode ? 'Hide employee ID' : 'Show employee ID'}
+                        aria-label={showIdNumber ? 'Hide ID number' : 'Show ID number'}
                       >
-                        {showEmployeeCode ? <EyeIcon /> : <EyeOffIcon />}
+                        {showIdNumber ? <EyeIcon /> : <EyeOffIcon />}
                       </button>
                     </div>
                   </div>

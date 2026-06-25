@@ -18,22 +18,25 @@ export const dictionary = {
     nav_rewards: 'Rewards',
     nav_leaderboard: 'Leaderboard',
     nav_predictions: 'Predictions',
+// Login
+login_title_line1: 'Welcome to',
+login_title_line2: 'JLR Predictions',
+login_subtitle: 'Sign in to submit your predictions, earn points, and compete with your colleagues.',
 
-    // Login
-    login_title_line1: 'Welcome to',
-    login_title_line2: 'JLR Predictions',
-    login_subtitle: 'Sign in to submit your predictions, earn points, and compete with your colleagues.',
-    login_email: 'Email',
-    login_emailPlaceholder: 'name@company.com',
-    login_employeeId: 'Employee ID',
-    login_employeeIdPlaceholder: 'e.g. 4521',
-    login_password: 'Password',
-    login_passwordPlaceholder: 'Enter your password',
-    login_submit: 'Sign in',
-    login_submitting: 'Signing in...',
-    login_error: 'Incorrect email, employee ID, or password',
-    login_secure: 'Secure internal access for employees only',
-    login_created: 'Created by Sara Khalid',
+login_email: 'ID Number',
+login_emailPlaceholder: 'Enter your ID number',
+
+login_employeeId: 'Employee ID',
+login_employeeIdPlaceholder: 'Enter your employee ID',
+
+login_password: 'Password',
+login_passwordPlaceholder: 'Enter your password',
+
+login_submit: 'Sign in',
+login_submitting: 'Signing in...',
+login_error: 'Incorrect ID number or employee ID',
+login_secure: 'Secure internal access for employees only',
+login_created: 'Created by Sara Khalid',
 
     // Predictions page
     pred_greeting: 'Welcome,',
@@ -237,21 +240,25 @@ export const dictionary = {
     nav_rewards: 'الجوائز',
     nav_leaderboard: 'المتصدرون',
     nav_predictions: 'التوقعات',
+// Login
+login_title_line1: 'مرحباً بك في',
+login_title_line2: 'توقعات JLR',
+login_subtitle: 'سجّل الدخول لتقديم توقعاتك، واجمع النقاط، وتنافس مع زملائك.',
 
-    login_title_line1: 'مرحباً بك في',
-    login_title_line2: 'توقعات JLR',
-    login_subtitle: 'سجّل الدخول لتقديم توقعاتك، واجمع النقاط، وتنافس مع زملائك.',
-    login_email: 'البريد الإلكتروني',
-    login_emailPlaceholder: 'name@company.com',
-    login_employeeId: 'الرقم الوظيفي',
-    login_employeeIdPlaceholder: 'مثال: 4521',
-    login_password: 'كلمة المرور',
-    login_passwordPlaceholder: 'أدخل كلمة المرور',
-    login_submit: 'تسجيل الدخول',
-    login_submitting: 'جاري تسجيل الدخول...',
-    login_error: 'البريد الإلكتروني أو الرقم الوظيفي أو كلمة المرور غير صحيحة',
-    login_secure: 'وصول داخلي آمن للموظفين فقط',
-    login_created: 'Created by Sara Khalid',
+login_email: 'رقم الهوية / الإقامة',
+login_emailPlaceholder: 'أدخل رقم الهوية أو الإقامة',
+
+login_employeeId: 'الرقم الوظيفي',
+login_employeeIdPlaceholder: 'أدخل الرقم الوظيفي',
+
+login_password: 'كلمة المرور',
+login_passwordPlaceholder: 'أدخل كلمة المرور',
+
+login_submit: 'تسجيل الدخول',
+login_submitting: 'جاري تسجيل الدخول...',
+login_error: 'رقم الهوية أو الرقم الوظيفي غير صحيح',
+login_secure: 'وصول داخلي آمن للموظفين فقط',
+login_created: 'Created by Sara Khalid',
 
     pred_greeting: 'أهلاً،',
     pred_title: 'سجّل توقعاتك',
