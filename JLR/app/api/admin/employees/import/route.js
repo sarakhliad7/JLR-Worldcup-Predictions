@@ -113,7 +113,7 @@ export async function POST(req) {
       'id'
     ]);
 
-    if (!email || !fullName || !employeeCode || !idNumber) {
+    if (!fullName || !employeeCode || !idNumber) {
       skipped++;
       skippedRows.push({
         row: i + 2,
@@ -122,10 +122,12 @@ export async function POST(req) {
       continue;
     }
 
+    const finalEmail = email || `${employeeCode}@no-email.jlr.local`;
+
     const existing = await prisma.user.findFirst({
       where: {
         OR: [
-          { email },
+          { email: finalEmail },
           { employeeCode },
           { idNumber }
         ]
@@ -150,7 +152,7 @@ export async function POST(req) {
     await prisma.user.create({
       data: {
         name: fullName,
-        email,
+        email: finalEmail,
         employeeCode,
         idNumber,
         passwordHash: hashPassword(plainPassword),
@@ -163,7 +165,7 @@ export async function POST(req) {
 
     createdCredentials.push({
       name: fullName,
-      email,
+      email: finalEmail,
       employeeCode,
       idNumber,
       password: plainPassword
