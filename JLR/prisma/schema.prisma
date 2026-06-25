@@ -26,16 +26,26 @@ model Department {
 model User {
   id           String   @id @default(cuid())
   name         String
-  email        String   @unique // login identifier — must match the employee ID at sign-in
-  employeeCode String   @unique // login identifier, e.g. staff ID
+
+  // Kept for internal contact / future email verification.
+  // Login will use idNumber + employeeCode, not email.
+  email        String   @unique
+
+  // Employee ID used for login.
+  employeeCode String   @unique
+
+  // National ID / Iqama ID used for login.
+  // Optional for now so existing employees do not break immediately.
+  idNumber     String?  @unique
+
   passwordHash String
-  avatarLabel  String? // 2-3 letter initials shown in the colored avatar chip
+  avatarLabel  String?
   role         Role     @default(EMPLOYEE)
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
 
   totalPoints   Int      @default(0)
-  currentStreak Int      @default(0) // consecutive correct predictions
+  currentStreak Int      @default(0)
   bestStreak    Int      @default(0)
   createdAt     DateTime @default(now())
 
@@ -45,6 +55,7 @@ model User {
   userAchievements UserAchievement[]
 
   @@index([totalPoints])
+  @@index([idNumber])
 }
 
 enum Role {
@@ -52,49 +63,47 @@ enum Role {
   ADMIN
 }
 
-// ---------- Tournament data (synced from public World Cup feed) ----------
+// ---------- Tournament data ----------
 
 model Team {
   id        String  @id @default(cuid())
   nameEn    String  @unique
   nameAr    String?
   flagEmoji String?
-  group     String? // "A".."L", null for teams not yet determined
+  group     String?
 
-  homeMatches Match[] @relation("HomeTeam")
-  awayMatches Match[] @relation("AwayTeam")
+  homeMatches      Match[]        @relation("HomeTeam")
+  awayMatches      Match[]        @relation("AwayTeam")
   championPickedBy ChampionPick[]
 }
 
 model Match {
-  id           String   @id @default(cuid())
-  externalRef  String?  @unique // identifier/num from source feed, for sync de-dup
-  round        String   // "Matchday 1", "Round of 32", "Quarter-final", "Final"...
-  group        String?  // "A".."L" or null for knockout
-  kickoffAt    DateTime
-  venue        String?
+  id          String   @id @default(cuid())
+  externalRef String?  @unique
+  round       String
+  group       String?
+  kickoffAt   DateTime
+  venue       String?
 
-  homeTeamId   String?
-  awayTeamId   String?
-  homeTeam     Team?    @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam     Team?    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeamId String?
+  awayTeamId String?
+  homeTeam   Team?   @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team?   @relation("AwayTeam", fields: [awayTeamId], references: [id])
 
-  // raw placeholder labels from the bracket before teams are confirmed, e.g. "Winner Match 73"
   homeTeamLabel String?
   awayTeamLabel String?
 
-  homeScore    Int?
-  awayScore    Int?
-  status       MatchStatus @default(SCHEDULED)
-  // Who last set the result -- lets the auto-sync avoid overwriting an
-  // admin's manual correction (e.g. after a penalty shootout).
+  homeScore Int?
+  awayScore Int?
+  status    MatchStatus @default(SCHEDULED)
+
   resultSource ResultSource? @default(AUTO)
 
-  lockAt       DateTime  // predictions close at kickoff
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  lockAt    DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  predictions  Prediction[]
+  predictions Prediction[]
 
   @@index([kickoffAt])
   @@index([round])
@@ -115,58 +124,65 @@ enum MatchStatus {
 // ---------- Predictions & scoring ----------
 
 model Prediction {
-  id        String   @id @default(cuid())
-  userId    String
-  matchId   String
-  user      User     @relation(fields: [userId], references: [id])
-  match     Match    @relation(fields: [matchId], references: [id])
+  id      String @id @default(cuid())
+  userId  String
+  matchId String
+
+  user  User  @relation(fields: [userId], references: [id])
+  match Match @relation(fields: [matchId], references: [id])
 
   predHomeScore Int
   predAwayScore Int
 
-  pointsAwarded Int?     // null until match finishes; 6 exact, 3 correct outcome, 0 wrong
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  // null until match finishes; 4 exact score, 2 correct winner, 0 wrong
+  pointsAwarded Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, matchId])
   @@index([matchId])
 }
 
 model ChampionPick {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id])
-  teamId     String
-  team       Team     @relation(fields: [teamId], references: [id])
-  lockedAt   DateTime @default(now())
-  bonusAwarded Boolean @default(false) // true once +30 has been credited
+  id     String @id @default(cuid())
+  userId String @unique
+  teamId String
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  lockedAt     DateTime @default(now())
+  bonusAwarded Boolean  @default(false) // true once +20 has been credited
 }
 
 // ---------- Achievements / badges ----------
 
 model Achievement {
   id             String @id @default(cuid())
-  code           String @unique // "astoori", "muhannak", ...
+  code           String @unique
   name           String
   description    String
-  icon           String // key used by frontend to render an icon
-  pointThreshold Int? // used by the points-scanning job, null if event-driven
+  icon           String
+  pointThreshold Int?
 
   userAchievements UserAchievement[]
 }
 
 model UserAchievement {
-  id            String      @id @default(cuid())
+  id            String @id @default(cuid())
   userId        String
   achievementId String
-  user          User        @relation(fields: [userId], references: [id])
-  achievement   Achievement @relation(fields: [achievementId], references: [id])
-  unlockedAt    DateTime    @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+
+  unlockedAt DateTime @default(now())
 
   @@unique([userId, achievementId])
 }
 
-// ---------- News & comments ----------
+// ---------- News & announcements ----------
 
 model Announcement {
   id        String   @id @default(cuid())
@@ -176,14 +192,17 @@ model Announcement {
   bodyAr    String?
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  matchId   String?  // null = general feed, set = tied to a specific match
-  body      String
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  matchId String?
+  body    String
+
   createdAt DateTime @default(now())
 
   @@index([matchId])
