@@ -1,4 +1,6 @@
-'use client';
+﻿const fs = require('fs');
+
+const page = `'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -188,3 +190,7 @@ export default function AdminAnnouncementsPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/admin/announcements/page.js', page, 'utf8');
+console.log('Fixed admin announcements page.');
