@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿const fs = require('fs');
+
+const content = `import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { prisma } from '../../../../../lib/prisma';
 import { hashPassword, generatePassword } from '../../../../../lib/password';
@@ -177,3 +179,8 @@ export async function POST(req) {
     createdCredentials
   });
 }
+`;
+
+fs.writeFileSync('app/api/admin/employees/import/route.js', content, 'utf8');
+
+console.log('Employee import now supports ID Number.');
