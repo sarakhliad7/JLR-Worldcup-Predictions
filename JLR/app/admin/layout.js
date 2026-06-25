@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/employees', labelKey: 'admin_nav_employees' },
   { href: '/admin/departments', labelKey: 'admin_nav_departments' },
   { href: '/admin/matches', labelKey: 'admin_nav_matches' },
+  { href: '/admin/announcements', labelKey: 'admin_nav_announcements' },
   { href: '/admin/predictions', labelKey: 'admin_nav_predictions' },
 ];
 
