@@ -68,10 +68,10 @@ export const dictionary = {
     // Champion challenge
     champion_eyebrow: 'Champion challenge',
     champion_title: 'Pick the World Cup champion',
-    champion_bonus: '+30 points if correct',
+    champion_bonus: '+20 points if correct · Deadline: 3 July',
     champion_selectTeam: 'Choose a team',
     champion_locked: 'Challenge closed for this season',
-    champion_lockedError: 'Champion picks closed once Round of 32 began',
+    champion_lockedError: 'Champion picks closed after 3 July',
     champion_chooseTeamError: 'Choose a team',
 
     // Leaderboard
