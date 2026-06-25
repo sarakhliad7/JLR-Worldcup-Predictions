@@ -41,7 +41,6 @@ export default function AdminEmployeesPage() {
       const matchesSearch =
         !term ||
         e.name?.toLowerCase().includes(term) ||
-        e.email?.toLowerCase().includes(term) ||
         e.idNumber?.toLowerCase().includes(term) ||
         e.employeeCode?.toLowerCase().includes(term) ||
         department?.toLowerCase().includes(term);
@@ -229,7 +228,7 @@ export default function AdminEmployeesPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, ID number, employee ID, email, or department..."
+              placeholder="Search by name, ID number, employee ID, or department..."
               className="w-full md:max-w-md rounded-xl border border-card-border/60 bg-white/70 px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus-ring"
             />
 
@@ -402,9 +401,6 @@ export default function AdminEmployeesPage() {
                 {t('admin_employees_name')}
               </th>
               <th className="px-4 py-3 text-start font-semibold">
-                {t('admin_employees_email')}
-              </th>
-              <th className="px-4 py-3 text-start font-semibold">
                 ID Number
               </th>
               <th className="px-4 py-3 text-start font-semibold">
@@ -424,7 +420,6 @@ export default function AdminEmployeesPage() {
             {filteredEmployees.map((e) => (
               <tr key={e.id}>
                 <td className="px-4 py-3 text-ink font-medium">{e.name}</td>
-                <td className="px-4 py-3 text-ink-body">{e.email}</td>
                 <td className="px-4 py-3 text-ink-body font-tabular">
                   {e.idNumber || '-'}
                 </td>
