@@ -36,7 +36,7 @@ export async function GET(req) {
 
   const shaped = users
     .map((u) => {
-      const exactCount = u.predictions.filter((p) => p.pointsAwarded === 6).length;
+      const exactCount = u.predictions.filter((p) => p.pointsAwarded === 4).length;
       const correctCount = u.predictions.filter(
         (p) => p.pointsAwarded != null && p.pointsAwarded > 0
       ).length;

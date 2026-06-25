@@ -38,7 +38,7 @@ export const dictionary = {
     // Predictions page
     pred_greeting: 'Welcome,',
     pred_title: 'Make your predictions',
-    pred_rulesHint: 'Exact score = 6 points · Correct winner = 3 points',
+    pred_rulesHint: 'Exact score = 4 points · Correct winner = 2 points',
     pred_pendingCount: "matches you haven't predicted yet",
     pred_noMatches: 'No matches in this category',
     pred_yourPrediction: 'Your pick:',
@@ -68,10 +68,10 @@ export const dictionary = {
     // Champion challenge
     champion_eyebrow: 'Champion challenge',
     champion_title: 'Pick the World Cup champion',
-    champion_bonus: '+30 points if correct',
+    champion_bonus: '+20 points if correct · Deadline: 3 July',
     champion_selectTeam: 'Choose a team',
     champion_locked: 'Challenge closed for this season',
-    champion_lockedError: 'Champion picks closed once Round of 32 began',
+    champion_lockedError: 'Champion picks closed after 3 July',
     champion_chooseTeamError: 'Choose a team',
 
     // Leaderboard
@@ -255,7 +255,7 @@ export const dictionary = {
 
     pred_greeting: 'أهلاً،',
     pred_title: 'سجّل توقعاتك',
-    pred_rulesHint: 'النتيجة بالضبط = 6 نقاط · الفائز الصحيح = 3 نقاط',
+    pred_rulesHint: 'النتيجة بالضبط = 4 نقاط · الفائز الصحيح = 2 نقاط',
     pred_pendingCount: 'مباريات لم تتوقع عليها بعد',
     pred_noMatches: 'لا توجد مباريات في هذا التصنيف',
     pred_yourPrediction: 'توقعك:',
@@ -282,10 +282,10 @@ export const dictionary = {
 
     champion_eyebrow: 'تحدي البطل',
     champion_title: 'توقّع بطل كأس العالم',
-    champion_bonus: '+30 نقطة لو أصبت',
+    champion_bonus: '+20 نقطة لو أصبت · آخر موعد 3 July',
     champion_selectTeam: 'اختر الفريق',
     champion_locked: 'أُغلق التحدي لهذا الموسم',
-    champion_lockedError: 'أُغلق تحدي البطل بعد بداية دور الـ32',
+    champion_lockedError: 'أُغلق تحدي البطل بعد 3 July',
     champion_chooseTeamError: 'اختر فريقًا',
 
     leaderboard_title: 'لوحة المتصدرين',

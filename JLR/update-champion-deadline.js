@@ -1,4 +1,8 @@
-import { NextResponse } from 'next/server';
+﻿const fs = require('fs');
+
+const file = 'app/api/champion-pick/route.js';
+
+const content = `import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
@@ -54,3 +58,7 @@ export async function POST(req) {
 
   return NextResponse.json({ pick });
 }
+`;
+
+fs.writeFileSync(file, content, 'utf8');
+console.log('Updated champion deadline:', file);

@@ -125,7 +125,7 @@ export async function evaluateAchievements() {
   for (const u of users) {
     const unlocked = new Set(u.userAchievements.map((ua) => ua.achievementId));
     const finished = u.predictions.filter((p) => p.match.status === 'FINISHED' && p.pointsAwarded != null);
-    const exactCount = finished.filter((p) => p.pointsAwarded === 6).length;
+    const exactCount = finished.filter((p) => p.pointsAwarded === 4).length;
     const correctCount = finished.filter((p) => p.pointsAwarded > 0).length;
 
     const toUnlock = [];
