@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿const fs = require('fs');
+
+const content = `import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -19,3 +21,7 @@ export async function GET() {
     }
   );
 }
+`;
+
+fs.writeFileSync('app/api/announcements/route.js', content, 'utf8');
+console.log('Public announcements API forced dynamic.');
