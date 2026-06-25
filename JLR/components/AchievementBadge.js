@@ -4,52 +4,52 @@ import { useLocale } from '../lib/i18n/LocaleContext';
 
 const LABELS = {
   batal_tawaqqu: {
-    icon: '🎯',
+    icon: '\uD83C\uDFAF',
     color: '#9B6A43',
     enName: 'Prediction Accuracy',
-    arName: 'دقّة التوقع',
+    arName: '\u062F\u0642\u0651\u0629 \u0627\u0644\u062A\u0648\u0642\u0639',
     enDesc: 'Correctly predicted the exact score',
-    arDesc: 'أصاب النتيجة بالضبط',
+    arDesc: '\u0623\u0635\u0627\u0628 \u0627\u0644\u0646\u062A\u064A\u062C\u0629 \u0628\u0627\u0644\u0636\u0628\u0637',
   },
   muhannak: {
-    icon: '🔥',
+    icon: '\uD83D\uDD25',
     color: '#B9513F',
     enName: 'Winning Streak',
-    arName: 'سلسلة نجاح',
+    arName: '\u0633\u0644\u0633\u0644\u0629 \u0646\u062C\u0627\u062D',
     enDesc: '5 correct predictions in a row',
-    arDesc: '5 توقعات صحيحة متتالية',
+    arDesc: '5 \u062A\u0648\u0642\u0639\u0627\u062A \u0635\u062D\u064A\u062D\u0629 \u0645\u062A\u062A\u0627\u0644\u064A\u0629',
   },
   astoori: {
-    icon: '🔮',
+    icon: '\uD83D\uDD2E',
     color: '#8B7FD9',
     enName: 'Full Group Prediction',
-    arName: 'توقع المجموعة كاملة',
+    arName: '\u062A\u0648\u0642\u0639 \u0627\u0644\u0645\u062C\u0645\u0648\u0639\u0629 \u0643\u0627\u0645\u0644\u0629',
     enDesc: 'Predicted all matches in a group',
-    arDesc: 'توقع جميع مباريات مجموعة كاملة',
+    arDesc: '\u062A\u0648\u0642\u0639 \u062C\u0645\u064A\u0639 \u0645\u0628\u0627\u0631\u064A\u0627\u062A \u0645\u062C\u0645\u0648\u0639\u0629 \u0643\u0627\u0645\u0644\u0629',
   },
   sinbaq: {
-    icon: '⏱️',
+    icon: '\u23F1\uFE0F',
     color: '#6FA8B8',
     enName: 'Early Predictor',
-    arName: 'التوقع المبكر',
+    arName: '\u0627\u0644\u062A\u0648\u0642\u0639 \u0627\u0644\u0645\u0628\u0643\u0631',
     enDesc: 'Submitted predictions 24 hours early',
-    arDesc: 'أرسل توقعاته قبل 24 ساعة',
+    arDesc: '\u0623\u0631\u0633\u0644 \u062A\u0648\u0642\u0639\u0627\u062A\u0647 \u0642\u0628\u0644 24 \u0633\u0627\u0639\u0629',
   },
   saed_mufajaat: {
-    icon: '⚡',
+    icon: '\u26A1',
     color: '#A9744F',
     enName: 'Upset Predictor',
-    arName: 'توقع المفاجآت',
+    arName: '\u062A\u0648\u0642\u0639 \u0627\u0644\u0645\u0641\u0627\u062C\u0622\u062A',
     enDesc: 'Correctly predicted an underdog win',
-    arDesc: 'توقع فوز الفريق الأقل ترشيحًا',
+    arDesc: '\u062A\u0648\u0642\u0639 \u0641\u0648\u0632 \u0627\u0644\u0641\u0631\u064A\u0642 \u0627\u0644\u0623\u0642\u0644 \u062A\u0631\u0634\u064A\u062D\u064B\u0627',
   },
   wahsh_usboo: {
-    icon: '👑',
+    icon: '\uD83D\uDC51',
     color: '#C8A45D',
     enName: 'Star of the Week',
-    arName: 'نجم الأسبوع',
+    arName: '\u0646\u062C\u0645 \u0627\u0644\u0623\u0633\u0628\u0648\u0639',
     enDesc: 'Best weekly prediction performance',
-    arDesc: 'أفضل أداء في توقعات الأسبوع',
+    arDesc: '\u0623\u0641\u0636\u0644 \u0623\u062F\u0627\u0621 \u0641\u064A \u062A\u0648\u0642\u0639\u0627\u062A \u0627\u0644\u0623\u0633\u0628\u0648\u0639',
   },
 };
 
@@ -57,7 +57,7 @@ export default function AchievementBadge({ code, unlocked }) {
   const { locale } = useLocale();
   const item = LABELS[code] || {};
 
-  const icon = item.icon || '🏅';
+  const icon = item.icon || '\uD83C\uDFC5';
   const color = item.color || '#9B6A43';
   const name = locale === 'ar' ? item.arName : item.enName;
   const description = locale === 'ar' ? item.arDesc : item.enDesc;
