@@ -1,4 +1,6 @@
-'use client';
+﻿const fs = require('fs');
+
+const newsPage = `'use client';
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -67,3 +69,23 @@ export default function NewsPage() {
     </div>
   );
 }
+`;
+
+const commentsApi = `import { NextResponse } from 'next/server';
+
+export async function GET() {
+  return NextResponse.json({ comments: [] });
+}
+
+export async function POST() {
+  return NextResponse.json(
+    { error: 'err_forbidden' },
+    { status: 403 }
+  );
+}
+`;
+
+fs.writeFileSync('app/news/page.js', newsPage, 'utf8');
+fs.writeFileSync('app/api/comments/route.js', commentsApi, 'utf8');
+
+console.log('Chat disabled. News page now shows admin announcements only.');
