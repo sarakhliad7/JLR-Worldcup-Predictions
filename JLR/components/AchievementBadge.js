@@ -65,12 +65,16 @@ export default function AchievementBadge({ code, unlocked }) {
   return (
     <div
       className={`rounded-2xl border p-4 flex flex-col items-center text-center gap-1 transition-opacity ${
-        unlocked ? 'bg-card-soft border-card-border/60' : 'bg-card-soft/40 border-card-border/30 opacity-50'
+        unlocked
+          ? 'bg-card-soft border-card-border/60'
+          : 'bg-card-soft/40 border-card-border/30 opacity-50'
       }`}
     >
       <div
         className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-1"
-        style={{ backgroundColor: unlocked ? `${color}26` : 'rgba(58,44,34,0.04)' }}
+        style={{
+          backgroundColor: unlocked ? `${color}26` : 'rgba(58,44,34,0.04)',
+        }}
       >
         {icon}
       </div>
