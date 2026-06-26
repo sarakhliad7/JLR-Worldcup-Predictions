@@ -82,7 +82,6 @@ export default function AdminEmployeesPage() {
   function startEdit(emp) {
     setForm({
       name: emp.name,
-      email: emp.email,
       idNumber: emp.idNumber || '',
       employeeCode: emp.employeeCode,
       departmentId: emp.department?.id || '',
@@ -290,11 +289,11 @@ export default function AdminEmployeesPage() {
                 <div className="mt-3 max-h-48 overflow-y-auto rounded-lg border border-card-border/50 divide-y divide-card-border/40">
                   {importResult.createdCredentials.map((c) => (
                     <div
-                      key={c.email}
+                      key={c.employeeCode}
                       className="px-3 py-2 text-xs flex items-center justify-between gap-2"
                     >
                       <span className="text-ink-body truncate">
-                        {c.name} ({c.email})
+                        {c.name} ({c.employeeCode})
                       </span>
                       <span className="font-tabular text-gold-dark shrink-0">
                         {c.password}
@@ -315,15 +314,6 @@ export default function AdminEmployeesPage() {
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
-              />
-            </Field>
-
-            <Field label={t('admin_employees_email')}>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full rounded-lg border border-card-border/60 bg-white/60 px-3 py-2 text-sm focus-ring"
               />
             </Field>
