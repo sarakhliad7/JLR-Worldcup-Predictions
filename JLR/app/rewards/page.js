@@ -9,17 +9,19 @@ const content = {
     fresh: 'Fresh chances',
     roundDraws: 'Round Draws',
     roundNote: 'Based on this round’s points only',
-    rounds: [
-      { name: 'Round of 32', winners: '2 winners' },
-      { name: 'Round of 16', winners: '1 winner' },
-      { name: 'Quarter-finals', winners: '1 winner' },
-      { name: 'Semi-finals', winners: '1 winner' },
-      { name: 'Final', winners: '1 winner' }
-    ],
     prize: 'Prize',
     prizeStatus: 'Not finalized yet',
     prizeNote: 'The prize will be announced later — follow News & Announcements for updates.',
     rulesTitle: 'How winners are selected',
+    winners: 'Winners',
+    winner: 'Winner',
+    employeeId: 'Employee ID',
+    points: 'Points',
+    ended: 'Ended',
+    live: 'Live',
+    inProgress: 'In progress',
+    upcoming: 'Upcoming',
+    noWinnersYet: 'Winners will appear after the round ends.',
     rules: [
       'Each round’s points are calculated from that round’s matches only.',
       'The highest point holders in each round qualify for that round’s draw.',
@@ -36,17 +38,19 @@ const content = {
     fresh: 'فرص متجددة',
     roundDraws: 'سحوبات الأدوار',
     roundNote: 'حسب نقاط هذا الدور فقط',
-    rounds: [
-      { name: 'دور 32', winners: '2 فائزين' },
-      { name: 'دور 16', winners: 'فائز واحد' },
-      { name: 'ربع النهائي', winners: 'فائز واحد' },
-      { name: 'نصف النهائي', winners: 'فائز واحد' },
-      { name: 'النهائي', winners: 'فائز واحد' }
-    ],
     prize: 'الجائزة',
     prizeStatus: 'لم تُحدد بعد',
     prizeNote: 'سيتم الإعلان عنها لاحقًا — تابع الأخبار والإعلانات للمزيد.',
     rulesTitle: 'آلية اختيار الفائزين',
+    winners: 'الفائزون',
+    winner: 'الفائز',
+    employeeId: 'الرقم الوظيفي',
+    points: 'النقاط',
+    ended: 'انتهى',
+    live: 'مباشر',
+    inProgress: 'جاري',
+    upcoming: 'قادم',
+    noWinnersYet: 'سيظهر الفائزون بعد انتهاء الدور.',
     rules: [
       'يتم احتساب نقاط كل دور من مباريات ذلك الدور فقط.',
       'أصحاب أعلى النقاط في كل دور يدخلون السحب الخاص بذلك الدور.',
@@ -58,6 +62,44 @@ const content = {
     grandDesc: 'أعلى 2 نقاط في نهاية البطولة.'
   }
 };
+
+const fallbackRounds = [
+  {
+    key: 'r32',
+    winnersCount: 2,
+    labels: { en: 'Round of 32', ar: 'دور 32' },
+    status: 'upcoming',
+    winners: []
+  },
+  {
+    key: 'r16',
+    winnersCount: 1,
+    labels: { en: 'Round of 16', ar: 'دور 16' },
+    status: 'upcoming',
+    winners: []
+  },
+  {
+    key: 'qf',
+    winnersCount: 1,
+    labels: { en: 'Quarter-finals', ar: 'ربع النهائي' },
+    status: 'upcoming',
+    winners: []
+  },
+  {
+    key: 'sf',
+    winnersCount: 1,
+    labels: { en: 'Semi-finals', ar: 'نصف النهائي' },
+    status: 'upcoming',
+    winners: []
+  },
+  {
+    key: 'final',
+    winnersCount: 1,
+    labels: { en: 'Final', ar: 'النهائي' },
+    status: 'upcoming',
+    winners: []
+  }
+];
 
 function getSavedLanguage() {
   if (typeof window === 'undefined') return 'en';
@@ -75,11 +117,30 @@ function getSavedLanguage() {
   return 'en';
 }
 
+function getStatusText(status, t) {
+  if (status === 'ended') return t.ended;
+  if (status === 'live') return t.live;
+  if (status === 'in_progress') return t.inProgress;
+  return t.upcoming;
+}
+
 export default function RewardsPage() {
   const [language, setLanguage] = useState('en');
+  const [rounds, setRounds] = useState(fallbackRounds);
 
   useEffect(() => {
     setLanguage(getSavedLanguage());
+
+    fetch('/api/rewards', { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.rounds)) {
+          setRounds(data.rounds);
+        }
+      })
+      .catch(() => {
+        setRounds(fallbackRounds);
+      });
   }, []);
 
   const t = content[language] || content.en;
@@ -122,23 +183,70 @@ export default function RewardsPage() {
         </div>
 
         <div className="space-y-3">
-          {t.rounds.map((round, index) => (
+          {rounds.map((round, index) => (
             <div
-              key={round.name}
-              className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-3xl border border-card-border/70 bg-white px-5 py-4 shadow-sm"
+              key={round.key}
+              className="rounded-3xl border border-card-border/70 bg-white px-5 py-4 shadow-sm"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
-                {index + 1}
+              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
+                  {index + 1}
+                </div>
+
+                <div className={isArabic ? 'text-right' : 'text-left'}>
+                  <p className="text-base font-bold text-ink-heading">
+                    {round.labels?.[language] || round.labels?.en}
+                  </p>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {t.roundNote}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                  <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-900">
+                    {round.winnersCount === 2
+                      ? isArabic
+                        ? '2 فائزين'
+                        : '2 winners'
+                      : isArabic
+                        ? 'فائز واحد'
+                        : '1 winner'}
+                  </span>
+
+                  <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">
+                    {getStatusText(round.status, t)}
+                  </span>
+                </div>
               </div>
 
-              <div className={isArabic ? 'text-right' : 'text-left'}>
-                <p className="text-base font-bold text-ink-heading">{round.name}</p>
-                <p className="mt-1 text-xs text-ink-muted">{t.roundNote}</p>
-              </div>
+              <div className="mt-4 rounded-2xl bg-cream/60 p-4">
+                <p className="mb-3 text-sm font-bold text-ink-heading">
+                  {round.winnersCount === 2 ? t.winners : t.winner}
+                </p>
 
-              <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-900">
-                {round.winners}
-              </span>
+                {round.winners?.length ? (
+                  <div className="space-y-2">
+                    {round.winners.map((winner, winnerIndex) => (
+                      <div
+                        key={`${winner.employeeCode}-${winnerIndex}`}
+                        className="rounded-2xl border border-card-border/60 bg-white px-4 py-3"
+                      >
+                        <p className="font-bold text-ink-heading">
+                          {winnerIndex + 1}. {winner.name}
+                        </p>
+                        <p className="mt-1 text-xs text-ink-muted">
+                          {t.employeeId}: {winner.employeeCode}
+                        </p>
+                        <p className="mt-1 text-xs font-bold text-brand">
+                          {t.points}: {winner.points}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-ink-muted">{t.noWinnersYet}</p>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -160,8 +268,6 @@ export default function RewardsPage() {
           </div>
         </div>
       </section>
-
-      
 
       <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
         <p className="mb-4 text-lg font-bold text-ink-heading">
