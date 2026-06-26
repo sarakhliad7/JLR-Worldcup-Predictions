@@ -36,10 +36,12 @@ export async function POST(request) {
     const file = formData.get('file');
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'admin_err_missingFile', imported: 0, skipped: 0, skippedRows: [] },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        error: 'admin_err_missingFile',
+        imported: 0,
+        skipped: 0,
+        skippedRows: []
+      }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -59,10 +61,9 @@ export async function POST(request) {
       deptByCode.set(clean(dept.code).toLowerCase(), dept.id);
     }
 
-    let imported = 0;
-    let skipped = 0;
     const skippedRows = [];
     const createdCredentials = [];
+    const data = [];
 
     const seenEmployeeCodes = new Set();
     const seenIdNumbers = new Set();
@@ -70,79 +71,23 @@ export async function POST(request) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
 
-      const fullName = getField(row, [
-        'Full Name',
-        'Name',
-        'Employee Name',
-        'FullName'
-      ]);
-
-      const employeeCode = getField(row, [
-        'Employee ID',
-        'EmployeeID',
-        'Employee Code',
-        'Employee Number',
-        'Emp ID',
-        'Staff ID'
-      ]);
-
-      const idNumber = getField(row, [
-        'ID Number',
-        'IDNumber',
-        'National ID',
-        'NationalID',
-        'Iqama',
-        'Iqama ID',
-        'Iqama Number',
-        'ID No',
-        'ID'
-      ]);
-
-      const departmentName = getField(row, [
-        'Department',
-        'Dept',
-        'Department Name',
-        'Division'
-      ]);
+      const fullName = getField(row, ['Full Name', 'Name', 'Employee Name', 'FullName']);
+      const employeeCode = getField(row, ['Employee ID', 'EmployeeID', 'Employee Code', 'Employee Number', 'Emp ID', 'Staff ID']);
+      const idNumber = getField(row, ['ID Number', 'IDNumber', 'National ID', 'NationalID', 'Iqama', 'Iqama ID', 'Iqama Number', 'ID No', 'ID']);
+      const departmentName = getField(row, ['Department', 'Dept', 'Department Name', 'Division']);
 
       if (!fullName || !employeeCode || !idNumber) {
-        skipped++;
-        skippedRows.push({
-          row: i + 2,
-          reason: 'admin_err_missingFields'
-        });
+        skippedRows.push({ row: i + 2, reason: 'admin_err_missingFields' });
         continue;
       }
 
       if (seenEmployeeCodes.has(employeeCode) || seenIdNumbers.has(idNumber)) {
-        skipped++;
-        skippedRows.push({
-          row: i + 2,
-          reason: 'admin_err_duplicateInFile'
-        });
+        skippedRows.push({ row: i + 2, reason: 'admin_err_duplicateInFile' });
         continue;
       }
 
       seenEmployeeCodes.add(employeeCode);
       seenIdNumbers.add(idNumber);
-
-      const existing = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { employeeCode },
-            { idNumber }
-          ]
-        }
-      });
-
-      if (existing) {
-        skipped++;
-        skippedRows.push({
-          row: i + 2,
-          reason: 'admin_err_duplicateUser'
-        });
-        continue;
-      }
 
       const departmentId = departmentName
         ? deptByName.get(departmentName.toLowerCase()) ||
@@ -152,19 +97,15 @@ export async function POST(request) {
 
       const plainPassword = employeeCode;
 
-      await prisma.user.create({
-        data: {
-          name: fullName,
-          employeeCode,
-          idNumber,
-          passwordHash: crypto.createHash('sha256').update(plainPassword).digest('hex'),
-          avatarLabel: fullName.slice(0, 2).toUpperCase(),
-          departmentId,
-          role: 'EMPLOYEE'
-        }
+      data.push({
+        name: fullName,
+        employeeCode,
+        idNumber,
+        passwordHash: crypto.createHash('sha256').update(plainPassword).digest('hex'),
+        avatarLabel: fullName.slice(0, 2).toUpperCase(),
+        departmentId,
+        role: 'EMPLOYEE'
       });
-
-      imported++;
 
       createdCredentials.push({
         name: fullName,
@@ -174,21 +115,57 @@ export async function POST(request) {
       });
     }
 
+    const employeeCodes = data.map((x) => x.employeeCode);
+    const idNumbers = data.map((x) => x.idNumber);
+
+    const existingUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { employeeCode: { in: employeeCodes } },
+          { idNumber: { in: idNumbers } }
+        ]
+      },
+      select: {
+        employeeCode: true,
+        idNumber: true
+      }
+    });
+
+    const existingEmployeeCodes = new Set(existingUsers.map((u) => u.employeeCode));
+    const existingIdNumbers = new Set(existingUsers.map((u) => u.idNumber));
+
+    const finalData = data.filter((x, index) => {
+      const exists =
+        existingEmployeeCodes.has(x.employeeCode) ||
+        existingIdNumbers.has(x.idNumber);
+
+      if (exists) {
+        skippedRows.push({
+          row: index + 2,
+          reason: 'admin_err_duplicateUser'
+        });
+      }
+
+      return !exists;
+    });
+
+    const result = await prisma.user.createMany({
+      data: finalData,
+      skipDuplicates: true
+    });
+
     return NextResponse.json({
-      imported,
-      skipped,
+      imported: result.count,
+      skipped: rows.length - result.count,
       skippedRows,
-      createdCredentials
+      createdCredentials: createdCredentials.slice(0, result.count)
     });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error: error.message || 'Import failed',
-        imported: 0,
-        skipped: 0,
-        skippedRows: []
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      error: error.message || 'Import failed',
+      imported: 0,
+      skipped: 0,
+      skippedRows: []
+    }, { status: 500 });
   }
 }
