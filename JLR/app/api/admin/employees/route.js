@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
-import { hashPassword } from '../../../../lib/auth';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +68,7 @@ export async function POST(request) {
       name,
       employeeCode,
       idNumber,
-      passwordHash: hashPassword(plainPassword),
+      passwordHash: crypto.createHash('sha256').update(plainPassword).digest('hex'),
       avatarLabel: name.slice(0, 2).toUpperCase(),
       departmentId,
       role
