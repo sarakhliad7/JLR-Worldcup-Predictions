@@ -109,7 +109,7 @@ export default function AdminEmployeesPage() {
         body: JSON.stringify(form),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res);
 
       if (!res.ok) throw new Error(t(data.error));
 
@@ -134,7 +134,7 @@ export default function AdminEmployeesPage() {
       body: JSON.stringify({ resetPassword: true }),
     });
 
-    const data = await res.json();
+    const data = await safeJson(res);
 
     if (res.ok && data.plainPassword) {
       setCredentialModal({ ...data.employee, password: data.plainPassword });
@@ -165,7 +165,7 @@ export default function AdminEmployeesPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      const data = await safeJson(res);
 
       if (!res.ok) throw new Error(t(data.error));
 
