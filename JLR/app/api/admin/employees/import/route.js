@@ -1,160 +1,194 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
+import crypto from 'crypto';
 import { prisma } from '../../../../../lib/prisma';
-import { hashPassword, generatePassword } from '../../../../../lib/password';
 
-export async function POST(req) {
-  const formData = await req.formData();
-  const file = formData.get('file');
+export const dynamic = 'force-dynamic';
 
-  if (!file || typeof file === 'string') {
-    return NextResponse.json(
-      { error: 'admin_err_noFile' },
-      { status: 400 }
-    );
+function clean(value) {
+  return String(value ?? '').trim();
+}
+
+function normalizeKey(key) {
+  return String(key || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function getField(row, candidates) {
+  const normalizedRow = {};
+
+  for (const [key, value] of Object.entries(row)) {
+    normalizedRow[normalizeKey(key)] = value;
   }
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  for (const candidate of candidates) {
+    const value = normalizedRow[normalizeKey(candidate)];
+    if (value !== undefined && value !== null && clean(value) !== '') {
+      return clean(value);
+    }
+  }
 
-  let rows;
+  return '';
+}
 
+export async function POST(request) {
   try {
+    const formData = await request.formData();
+    const file = formData.get('file');
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'admin_err_missingFile', imported: 0, skipped: 0, skippedRows: [] },
+        { status: 400 }
+      );
+    }
+
+    const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    rows = workbook.SheetNames.flatMap((sheetName) => {
+
+    const rows = workbook.SheetNames.flatMap((sheetName) => {
       const sheet = workbook.Sheets[sheetName];
       return XLSX.utils.sheet_to_json(sheet, { defval: '' });
     });
-  } catch (e) {
-    return NextResponse.json(
-      { error: 'admin_err_invalidFile' },
-      { status: 400 }
-    );
-  }
 
-  if (!rows.length) {
-    return NextResponse.json(
-      { error: 'admin_err_emptyFile' },
-      { status: 400 }
-    );
-  }
+    const departments = await prisma.department.findMany();
+    const deptByName = new Map();
+    const deptByCode = new Map();
 
-  function getField(row, candidates) {
-    const keys = Object.keys(row);
+    for (const dept of departments) {
+      deptByName.set(clean(dept.name).toLowerCase(), dept.id);
+      deptByCode.set(clean(dept.code).toLowerCase(), dept.id);
+    }
 
-    for (const candidate of candidates) {
-      const match = keys.find(
-        (k) => k.trim().toLowerCase() === candidate.toLowerCase()
-      );
+    let imported = 0;
+    let skipped = 0;
+    const skippedRows = [];
+    const createdCredentials = [];
 
-      if (match && String(row[match]).trim()) {
-        return String(row[match]).trim();
+    const seenEmployeeCodes = new Set();
+    const seenIdNumbers = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+
+      const fullName = getField(row, [
+        'Full Name',
+        'Name',
+        'Employee Name',
+        'FullName'
+      ]);
+
+      const employeeCode = getField(row, [
+        'Employee ID',
+        'EmployeeID',
+        'Employee Code',
+        'Employee Number',
+        'Emp ID',
+        'Staff ID'
+      ]);
+
+      const idNumber = getField(row, [
+        'ID Number',
+        'IDNumber',
+        'National ID',
+        'NationalID',
+        'Iqama',
+        'Iqama ID',
+        'Iqama Number',
+        'ID No',
+        'ID'
+      ]);
+
+      const departmentName = getField(row, [
+        'Department',
+        'Dept',
+        'Department Name',
+        'Division'
+      ]);
+
+      if (!fullName || !employeeCode || !idNumber) {
+        skipped++;
+        skippedRows.push({
+          row: i + 2,
+          reason: 'admin_err_missingFields'
+        });
+        continue;
       }
-    }
 
-    return '';
-  }
-
-  const departments = await prisma.department.findMany();
-
-  const deptByName = new Map(
-    departments.map((d) => [d.name.toLowerCase(), d.id])
-  );
-
-  let imported = 0;
-  let skipped = 0;
-
-  const skippedRows = [];
-  const createdCredentials = [];
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-
-    const departmentName = getField(row, [
-      'department',
-      'dept',
-      'division'
-    ]);
-
-    const employeeCode = getField(row, [
-      'employee id',
-      'employeeid',
-      'employee code',
-      'emp id',
-      'empid',
-      'employee number',
-      'staff id'
-    ]);
-
-    const idNumber = getField(row, [
-      'id number',
-      'idnumber',
-      'national id',
-      'nationalid',
-      'iqama',
-      'iqama id',
-      'iqama number',
-      'id no',
-      'id'
-    ]);
-
-    if (!fullName || !employeeCode || !idNumber) {
-      skipped++;
-      skippedRows.push({
-        row: i + 2,
-        reason: 'admin_err_missingFields'
-      });
-      continue;
-    }
-
-    const existing = await prisma.user.findFirst({
-      where: {
-        OR: [{ employeeCode },
-          { idNumber }
-        ]
+      if (seenEmployeeCodes.has(employeeCode) || seenIdNumbers.has(idNumber)) {
+        skipped++;
+        skippedRows.push({
+          row: i + 2,
+          reason: 'admin_err_duplicateInFile'
+        });
+        continue;
       }
-    });
 
-    if (existing) {
-      skipped++;
-      skippedRows.push({
-        row: i + 2,
-        reason: 'admin_err_duplicateUser'
+      seenEmployeeCodes.add(employeeCode);
+      seenIdNumbers.add(idNumber);
+
+      const existing = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { employeeCode },
+            { idNumber }
+          ]
+        }
       });
-      continue;
-    }
 
-    const departmentId = departmentName
-      ? deptByName.get(departmentName.toLowerCase()) || null
-      : null;
+      if (existing) {
+        skipped++;
+        skippedRows.push({
+          row: i + 2,
+          reason: 'admin_err_duplicateUser'
+        });
+        continue;
+      }
 
-    const plainPassword = generatePassword();
+      const departmentId = departmentName
+        ? deptByName.get(departmentName.toLowerCase()) ||
+          deptByCode.get(departmentName.toLowerCase()) ||
+          null
+        : null;
 
-    await prisma.user.create({
-      data: {
+      const plainPassword = employeeCode;
+
+      await prisma.user.create({
+        data: {
+          name: fullName,
+          employeeCode,
+          idNumber,
+          passwordHash: crypto.createHash('sha256').update(plainPassword).digest('hex'),
+          avatarLabel: fullName.slice(0, 2).toUpperCase(),
+          departmentId,
+          role: 'EMPLOYEE'
+        }
+      });
+
+      imported++;
+
+      createdCredentials.push({
         name: fullName,
-employeeCode,
+        employeeCode,
         idNumber,
-        passwordHash: hashPassword(plainPassword),
-        avatarLabel: fullName.slice(0, 2).toUpperCase(),
-        departmentId
-      }
-    });
+        password: plainPassword
+      });
+    }
 
-    imported++;
-
-    createdCredentials.push({
-      name: fullName,
-employeeCode,
-      idNumber,
-      password: plainPassword
+    return NextResponse.json({
+      imported,
+      skipped,
+      skippedRows,
+      createdCredentials
     });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error.message || 'Import failed',
+        imported: 0,
+        skipped: 0,
+        skippedRows: []
+      },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    imported,
-    skipped,
-    skippedRows,
-    createdCredentials
-  });
 }
