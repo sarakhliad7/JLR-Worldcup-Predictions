@@ -70,22 +70,6 @@ export async function POST(req) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
 
-    const email = getField(row, [
-      'email',
-      'e-mail',
-      'email address',
-      'work email',
-      'company email'
-    ]).toLowerCase();
-
-    const fullName = getField(row, [
-      'full name',
-      'fullname',
-      'name',
-      'employee name',
-      'employee name en'
-    ]);
-
     const departmentName = getField(row, [
       'department',
       'dept',
@@ -123,13 +107,9 @@ export async function POST(req) {
       continue;
     }
 
-    const finalEmail = email || `${employeeCode}@no-email.jlr.local`;
-
     const existing = await prisma.user.findFirst({
       where: {
-        OR: [
-          { email: finalEmail },
-          { employeeCode },
+        OR: [{ employeeCode },
           { idNumber }
         ]
       }
@@ -153,8 +133,7 @@ export async function POST(req) {
     await prisma.user.create({
       data: {
         name: fullName,
-        email: finalEmail,
-        employeeCode,
+employeeCode,
         idNumber,
         passwordHash: hashPassword(plainPassword),
         avatarLabel: fullName.slice(0, 2).toUpperCase(),
@@ -166,8 +145,7 @@ export async function POST(req) {
 
     createdCredentials.push({
       name: fullName,
-      email: finalEmail,
-      employeeCode,
+employeeCode,
       idNumber,
       password: plainPassword
     });

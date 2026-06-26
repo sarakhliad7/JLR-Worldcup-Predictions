@@ -29,7 +29,7 @@ model User {
 
   // Kept for internal contact / future email verification.
   // Login will use idNumber + employeeCode, not email.
-  email        String   @unique
+  email String? @unique
 
   // Employee ID used for login.
   employeeCode String   @unique
