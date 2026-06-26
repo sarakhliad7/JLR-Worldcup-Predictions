@@ -12,7 +12,7 @@ export async function GET() {
     employees: employees.map((e) => ({
       id: e.id,
       name: e.name,
-      email: e.email,
+      email: e.email: finalEmail,
       employeeCode: e.employeeCode,
       idNumber: e.idNumber,
       role: e.role,
@@ -32,12 +32,12 @@ export async function POST(req) {
   const departmentId = body.departmentId || null;
   const role = body.role === 'ADMIN' ? 'ADMIN' : 'EMPLOYEE';
 
-  if (!name || !email || !employeeCode) {
+  if (!name || !employeeCode) {
     return NextResponse.json({ error: 'admin_err_missingFields' }, { status: 400 });
   }
 
   const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { employeeCode }, ...(idNumber ? [{ idNumber }] : [])] },
+    where: { OR: [{ email: finalEmail }, { employeeCode }, ...(idNumber ? [{ idNumber }] : [])] },
   });
   if (existing) {
     return NextResponse.json({ error: 'admin_err_duplicateUser' }, { status: 409 });
@@ -47,7 +47,7 @@ export async function POST(req) {
   const user = await prisma.user.create({
     data: {
       name,
-      email,
+      email: finalEmail,
       employeeCode,
       idNumber,
       passwordHash: hashPassword(plainPassword),
@@ -58,7 +58,7 @@ export async function POST(req) {
   });
 
   return NextResponse.json({
-    employee: { id: user.id, name: user.name, email: user.email, employeeCode: user.employeeCode, idNumber: user.idNumber },
+    employee: { id: user.id, name: user.name, email: user.email: finalEmail, employeeCode: user.employeeCode, idNumber: user.idNumber },
     plainPassword,
   });
 }

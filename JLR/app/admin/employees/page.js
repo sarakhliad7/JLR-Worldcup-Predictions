@@ -13,7 +13,7 @@ export default function AdminEmployeesPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
     name: '',
-    email: '',
+    
     idNumber: '',
     employeeCode: '',
     departmentId: '',
@@ -69,7 +69,7 @@ export default function AdminEmployeesPage() {
   function startAdd() {
     setForm({
       name: '',
-      email: '',
+      
       employeeCode: '',
       departmentId: '',
       role: 'EMPLOYEE',
