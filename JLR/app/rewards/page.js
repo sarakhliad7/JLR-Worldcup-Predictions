@@ -104,15 +104,18 @@ const fallbackRounds = [
 function getSavedLanguage() {
   if (typeof window === 'undefined') return 'en';
 
-  const keys = ['language', 'lang', 'locale', 'jlr-language', 'app-language'];
-
-  for (const key of keys) {
-    const value = window.localStorage.getItem(key);
-    if (value === 'ar' || value === 'en') return value;
-  }
-
   const htmlLang = document.documentElement.lang;
-  if (htmlLang === 'ar' || htmlLang === 'en') return htmlLang;
+  const htmlDir = document.documentElement.dir;
+
+  if (htmlLang === 'ar' || htmlDir === 'rtl') return 'ar';
+  if (htmlLang === 'en' || htmlDir === 'ltr') return 'en';
+
+  const possibleValues = Object.keys(window.localStorage)
+    .map((key) => window.localStorage.getItem(key))
+    .filter(Boolean);
+
+  if (possibleValues.includes('ar')) return 'ar';
+  if (possibleValues.includes('en')) return 'en';
 
   return 'en';
 }
@@ -129,7 +132,10 @@ export default function RewardsPage() {
   const [rounds, setRounds] = useState(fallbackRounds);
 
   useEffect(() => {
-    setLanguage(getSavedLanguage());
+    const updateLanguage = () => setLanguage(getSavedLanguage());
+
+    updateLanguage();
+    const interval = setInterval(updateLanguage, 300);
 
     fetch('/api/rewards', { cache: 'no-store' })
       .then((res) => res.json())
@@ -141,6 +147,8 @@ export default function RewardsPage() {
       .catch(() => {
         setRounds(fallbackRounds);
       });
+
+    return () => clearInterval(interval);
   }, []);
 
   const t = content[language] || content.en;
