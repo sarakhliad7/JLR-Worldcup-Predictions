@@ -101,6 +101,19 @@ export default function RewardsPage() {
       </section>
 
       <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
+        <h2 className="mb-4 text-lg font-bold text-ink-heading">{t.rulesTitle}</h2>
+
+        <ul className="space-y-3 text-sm leading-7 text-ink-muted">
+          {t.rules.map((rule) => (
+            <li key={rule} className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+              <span>{rule}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
           <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-900">
             {t.fresh}
@@ -148,18 +161,7 @@ export default function RewardsPage() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
-        <h2 className="mb-4 text-lg font-bold text-ink-heading">{t.rulesTitle}</h2>
-
-        <ul className="space-y-3 text-sm leading-7 text-ink-muted">
-          {t.rules.map((rule) => (
-            <li key={rule} className="flex gap-3">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-              <span>{rule}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      
 
       <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
         <p className="mb-4 text-lg font-bold text-ink-heading">
