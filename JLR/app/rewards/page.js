@@ -1,57 +1,161 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Podium from '../../components/Podium';
-import { useLocale } from '../../lib/i18n/LocaleContext';
+import { useLanguage } from '@/components/LanguageProvider';
+
+const content = {
+  ar: {
+    title: 'طريق الجوائز',
+    subtitle: 'كل دور يمنحك فرصة مستقلة للفوز حسب نقاطك في ذلك الدور فقط.',
+    roundsTitle: 'سحوبات الأدوار',
+    rounds: [
+      { name: 'دور 32', winners: '2 فائزين' },
+      { name: 'دور 16', winners: 'فائز واحد' },
+      { name: 'ربع النهائي', winners: 'فائز واحد' },
+      { name: 'نصف النهائي', winners: 'فائز واحد' },
+      { name: 'النهائي', winners: 'فائز واحد' }
+    ],
+    prizeTitle: 'الجائزة',
+    prizeStatus: 'لم تُحدد بعد',
+    prizeNote: 'سيتم الإعلان عنها لاحقًا — تابع الأخبار والإعلانات للمزيد.',
+    rulesTitle: 'آلية الفوز',
+    rules: [
+      'يتم احتساب نقاط كل دور من مباريات ذلك الدور فقط.',
+      'أصحاب أعلى النقاط في كل دور يدخلون السحب الخاص بذلك الدور.',
+      'الفوز في أحد السحوبات لا يمنعك من المشاركة في السحوبات القادمة.',
+      'الترتيب العام يبقى محفوظًا لجائزة أبطال الدوري في نهاية البطولة.'
+    ],
+    grandTitle: 'الجائزة الكبرى',
+    grandName: 'أبطال الدوري',
+    grandDesc: 'أعلى 2 نقاط في نهاية البطولة.'
+  },
+  en: {
+    title: 'Prize Journey',
+    subtitle: 'Each round gives you a separate chance to win based only on your points in that round.',
+    roundsTitle: 'Round Draws',
+    rounds: [
+      { name: 'Round of 32', winners: '2 winners' },
+      { name: 'Round of 16', winners: '1 winner' },
+      { name: 'Quarter-finals', winners: '1 winner' },
+      { name: 'Semi-finals', winners: '1 winner' },
+      { name: 'Final', winners: '1 winner' }
+    ],
+    prizeTitle: 'Prize',
+    prizeStatus: 'Not finalized yet',
+    prizeNote: 'The prize will be announced later — follow News & Announcements for updates.',
+    rulesTitle: 'How winners are selected',
+    rules: [
+      'Each round’s points are calculated from that round’s matches only.',
+      'The highest point holders in each round qualify for that round’s draw.',
+      'Winning one draw does not stop you from joining the upcoming draws.',
+      'Your overall ranking remains saved for the League Champions grand prize.'
+    ],
+    grandTitle: 'Grand Prize',
+    grandName: 'League Champions',
+    grandDesc: 'Top 2 point holders at the end of the tournament.'
+  }
+};
 
 export default function RewardsPage() {
-  const { status } = useSession();
-  const router = useRouter();
-  const { t } = useLocale();
-  const [leaderboard, setLeaderboard] = useState(null);
-
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
-
-  useEffect(() => {
-    fetch('/api/leaderboard').then((r) => r.json()).then((d) => setLeaderboard(d.leaderboard || []));
-  }, []);
-
-  const top3 = leaderboard?.slice(0, 3);
+  const { language } = useLanguage();
+  const t = content[language] || content.en;
+  const isArabic = language === 'ar';
 
   return (
-    <div className="px-4 pt-4 space-y-5">
-      <div>
-        <h2 className="font-display font-bold text-2xl text-ink">{t('rewards_title')}</h2>
-        <p className="text-ink-faint text-xs mt-1">{t('rewards_subtitle')}</p>
-      </div>
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pb-28 pt-8">
+      <section className="text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-3xl bg-brand/10 text-3xl">
+          🎁
+        </div>
+        <h1 className="text-3xl font-bold text-ink-heading">{t.title}</h1>
+        <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-ink-muted">
+          {t.subtitle}
+        </p>
+      </section>
 
-      <div>
-        <p className="text-gold-eyebrow text-xs font-bold mb-2">🏆 {t('rewards_grandPrizeEyebrow')}</p>
-        <div className="rounded-card bg-gradient-to-br from-card-soft to-cream-deep border border-gold/30 shadow-sm p-5">
-          <span className="text-[11px] font-bold text-gold-dark bg-gold/15 rounded-full px-2.5 py-1 inline-block mb-3">
-            {t('rewards_grandPrizeEyebrow')}
+      <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-900">
+            {isArabic ? 'فرص متجددة' : 'Fresh chances'}
           </span>
-          <h3 className="font-display font-bold text-xl text-ink mb-1.5">{t('rewards_grandPrizeTitle')}</h3>
-          <p className="text-ink-body text-sm leading-relaxed">
-            {t('rewards_grandPrizeDesc')}
-          </p>
+          <h2 className="text-xl font-bold text-ink-heading">{t.roundsTitle}</h2>
         </div>
-      </div>
 
-      <div className="rounded-xl bg-white/40 border border-card-border/50 px-4 py-3 text-sm text-ink-body flex gap-2">
-        <span>🔔</span>
-        <span>{t('rewards_grandPrizeTbd')}</span>
-      </div>
+        <div className="space-y-3">
+          {t.rounds.map((round, index) => (
+            <div
+              key={round.name}
+              className="grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-3xl border border-card-border/70 bg-white px-5 py-4 shadow-sm"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
+                {index + 1}
+              </div>
 
-      {top3?.length > 0 && (
-        <div className="bg-card-soft border border-card-border/50 rounded-card py-6 px-2">
-          <Podium top3={top3} />
+              <div className={isArabic ? 'text-right' : 'text-left'}>
+                <p className="text-base font-bold text-ink-heading">
+                  {round.name}
+                </p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  {isArabic ? 'حسب نقاط هذا الدور فقط' : 'Based on this round’s points only'}
+                </p>
+              </div>
+
+              <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-900">
+                {round.winners}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-dashed border-card-border bg-white/60 p-5 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-2xl">
+            🎁
+          </div>
+          <div className={isArabic ? 'text-right' : 'text-left'}>
+            <p className="text-sm font-bold text-brand">{t.prizeTitle}</p>
+            <h2 className="mt-1 text-xl font-bold text-ink-heading">
+              {t.prizeStatus}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-ink-muted">
+              {t.prizeNote}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
+        <h2 className="mb-4 text-lg font-bold text-ink-heading">
+          {t.rulesTitle}
+        </h2>
+
+        <ul className="space-y-3 text-sm leading-7 text-ink-muted">
+          {t.rules.map((rule) => (
+            <li key={rule} className="flex gap-3">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+              <span>{rule}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
+        <p className="mb-4 text-lg font-bold text-ink-heading">
+          🏆 {t.grandTitle}
+        </p>
+
+        <div className="rounded-[1.75rem] border border-card-border/70 bg-white p-6 shadow-sm">
+          <span className="rounded-full bg-brand/10 px-4 py-2 text-sm font-bold text-brand">
+            {t.grandTitle}
+          </span>
+
+          <h2 className="mt-5 text-2xl font-bold text-ink-heading">
+            {t.grandName}
+          </h2>
+
+          <p className="mt-2 text-sm text-ink-muted">{t.grandDesc}</p>
+        </div>
+      </section>
+    </main>
   );
 }
