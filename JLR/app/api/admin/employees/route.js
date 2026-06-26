@@ -58,7 +58,7 @@ export async function POST(req) {
   });
 
   return NextResponse.json({
-    employee: { id: user.id, name: user.name, email: user.email: finalEmail, employeeCode: user.employeeCode, idNumber: user.idNumber },
+    employee: { id: user.id, name: user.name, email: user.email, employeeCode: user.employeeCode, idNumber: user.idNumber },
     plainPassword,
   });
 }
