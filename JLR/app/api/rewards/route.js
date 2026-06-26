@@ -72,6 +72,20 @@ function getRoundStatus(matches) {
 }
 
 export async function GET() {
+  const manualWinners = await prisma.rewardWinner.findMany({
+    include: {
+      user: {
+        select: {
+          name: true,
+          employeeCode: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'asc'
+    }
+  });
+
   const matches = await prisma.match.findMany({
     select: {
       id: true,
@@ -91,7 +105,18 @@ export async function GET() {
     const status = getRoundStatus(roundMatches);
     let winners = [];
 
-    if (status === 'ended' && roundMatches.length) {
+    const announcedWinners = manualWinners
+      .filter((winner) => winner.roundKey === config.key)
+      .map((winner) => ({
+        name: winner.user?.name || 'Unknown',
+        employeeCode: winner.user?.employeeCode || '-',
+        points: winner.points,
+        manual: true
+      }));
+
+    if (announcedWinners.length) {
+      winners = announcedWinners;
+    } else if (status === 'ended' && roundMatches.length) {
       const matchIds = roundMatches.map((m) => m.id);
 
       const grouped = await prisma.prediction.groupBy({
@@ -137,7 +162,7 @@ export async function GET() {
       key: config.key,
       winnersCount: config.winnersCount,
       labels: config.labels,
-      status,
+      status: announcedWinners.length ? 'announced' : status,
       matchesCount: roundMatches.length,
       winners
     });

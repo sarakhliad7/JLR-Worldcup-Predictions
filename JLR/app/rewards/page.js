@@ -21,6 +21,7 @@ const content = {
     live: 'Live',
     inProgress: 'In progress',
     upcoming: 'Upcoming',
+    announced: 'Finished',
     noWinnersYet: 'Winners will appear after the round ends.',
     rules: [
       'Each round’s points are calculated from that round’s matches only.',
@@ -50,6 +51,7 @@ const content = {
     live: 'مباشر',
     inProgress: 'جاري',
     upcoming: 'قادم',
+    announced: 'تم الإعلان',
     noWinnersYet: 'سيظهر الفائزون بعد انتهاء الدور.',
     rules: [
       'يتم احتساب نقاط كل دور من مباريات ذلك الدور فقط.',
@@ -121,6 +123,7 @@ function getSavedLanguage() {
 }
 
 function getStatusText(status, t) {
+  if (status === 'announced') return t.announced;
   if (status === 'ended') return t.ended;
   if (status === 'live') return t.live;
   if (status === 'in_progress') return t.inProgress;
