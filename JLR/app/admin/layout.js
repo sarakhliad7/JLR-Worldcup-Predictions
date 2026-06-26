@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -13,7 +13,9 @@ const NAV = [
   { href: '/admin/departments', labelKey: 'admin_nav_departments' },
   { href: '/admin/matches', labelKey: 'admin_nav_matches' },
   { href: '/admin/announcements', labelKey: 'admin_nav_announcements' },
-  { href: '/admin/predictions', labelKey: 'admin_nav_predictions' },
+  { href: '/admin/Predictions
+  { href: '/admin/rewards', label: 'Rewards' },', labelKey: 'admin_nav_Predictions
+  { href: '/admin/rewards', label: 'Rewards' },' },
 ];
 
 export default function AdminLayout({ children }) {
@@ -24,7 +26,8 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
-      router.push('/predictions');
+      router.push('/Predictions
+  { href: '/admin/rewards', label: 'Rewards' },');
     }
   }, [status, session, router]);
 
@@ -65,13 +68,14 @@ export default function AdminLayout({ children }) {
             onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
             className="w-full text-start rounded-xl px-3.5 py-2 text-sm font-semibold text-ink-body hover:bg-white/50 focus-ring"
           >
-            {locale === 'en' ? 'العربية' : 'English'}
+            {locale === 'en' ? 'ط§ظ„ط¹ط±ط¨ظٹط©' : 'English'}
           </button>
           <Link
-            href="/predictions"
+            href="/Predictions
+  { href: '/admin/rewards', label: 'Rewards' },"
             className="block rounded-xl px-3.5 py-2 text-sm font-semibold text-ink-body hover:bg-white/50 focus-ring"
           >
-            ← {t('admin_backToSite')}
+            â†گ {t('admin_backToSite')}
           </Link>
         </div>
       </aside>
@@ -79,7 +83,8 @@ export default function AdminLayout({ children }) {
       {/* Mobile top bar (admin on small screens) */}
       <div className="md:hidden fixed top-0 inset-x-0 z-30 bg-card-soft border-b border-card-border/60 px-4 h-14 flex items-center justify-between">
         <span className="font-display font-bold text-sm">{t('admin_title')}</span>
-        <Link href="/predictions" className="text-xs font-semibold text-gold-dark">
+        <Link href="/Predictions
+  { href: '/admin/rewards', label: 'Rewards' }," className="text-xs font-semibold text-gold-dark">
           {t('admin_backToSite')}
         </Link>
       </div>
