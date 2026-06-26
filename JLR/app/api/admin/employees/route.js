@@ -12,7 +12,7 @@ export async function GET() {
     employees: employees.map((e) => ({
       id: e.id,
       name: e.name,
-      email: e.email: finalEmail,
+      email: e.email,
       employeeCode: e.employeeCode,
       idNumber: e.idNumber,
       role: e.role,
