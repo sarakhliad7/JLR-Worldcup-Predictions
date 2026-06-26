@@ -3,6 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocale } from '../../../lib/i18n/LocaleContext';
 
+async function safeJson(res) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {};
+  }
+}
+
+
+
 export default function AdminEmployeesPage() {
   const { t, locale } = useLocale();
   const [employees, setEmployees] = useState(null);
