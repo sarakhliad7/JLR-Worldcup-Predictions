@@ -21,9 +21,10 @@ export async function POST(req) {
 
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
-    const firstSheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[firstSheetName];
-    rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    rows = workbook.SheetNames.flatMap((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      return XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    });
   } catch (e) {
     return NextResponse.json(
       { error: 'admin_err_invalidFile' },
