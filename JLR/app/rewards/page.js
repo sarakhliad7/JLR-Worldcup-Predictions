@@ -6,7 +6,6 @@ const content = {
   en: {
     title: 'Prize Journey',
     subtitle: 'Each round gives you a separate chance to win based only on your points in that round.',
-    fresh: 'Fresh chances',
     roundDraws: 'Round Draws',
     roundNote: 'Based on this round’s points only',
     prize: 'Prize',
@@ -36,7 +35,6 @@ const content = {
   ar: {
     title: 'طريق الجوائز',
     subtitle: 'كل دور يمنحك فرصة مستقلة للفوز حسب نقاطك في ذلك الدور فقط.',
-    fresh: 'فرص متجددة',
     roundDraws: 'سحوبات الأدوار',
     roundNote: 'حسب نقاط هذا الدور فقط',
     prize: 'الجائزة',
@@ -70,7 +68,7 @@ const fallbackRounds = [
     key: 'r32',
     winnersCount: 2,
     labels: { en: 'Round of 32', ar: 'دور 32' },
-    closeLabel: { en: 'Closes on 29 June', ar: 'يغلق في 29 يونيو' },
+    closeLabel: { en: '28 June - 3 July', ar: '28 يونيو - 3 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -78,7 +76,7 @@ const fallbackRounds = [
     key: 'r16',
     winnersCount: 1,
     labels: { en: 'Round of 16', ar: 'دور 16' },
-    closeLabel: { en: 'Closes on 5 July', ar: 'يغلق في 5 يوليو' },
+    closeLabel: { en: '4 July - 7 July', ar: '4 يوليو - 7 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -86,7 +84,7 @@ const fallbackRounds = [
     key: 'qf',
     winnersCount: 1,
     labels: { en: 'Quarter-finals', ar: 'ربع النهائي' },
-    closeLabel: { en: 'Closes on 9 July', ar: 'يغلق في 9 يوليو' },
+    closeLabel: { en: '9 July - 12 July', ar: '9 يوليو - 12 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -94,7 +92,7 @@ const fallbackRounds = [
     key: 'sf',
     winnersCount: 1,
     labels: { en: 'Semi-finals', ar: 'نصف النهائي' },
-    closeLabel: { en: 'Closes on 14 July', ar: 'يغلق في 14 يوليو' },
+    closeLabel: { en: '14 July - 15 July', ar: '14 يوليو - 15 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -102,7 +100,7 @@ const fallbackRounds = [
     key: 'final',
     winnersCount: 1,
     labels: { en: 'Final', ar: 'النهائي' },
-    closeLabel: { en: 'Closes on 19 July', ar: 'يغلق في 19 يوليو' },
+    closeLabel: { en: '19 July', ar: '19 يوليو' },
     status: 'upcoming',
     winners: []
   }
@@ -120,38 +118,44 @@ function getSavedLanguage() {
   return 'en';
 }
 
-function getStatusText(status, t) {
-  if (status === 'ended') return t.ended;
-  if (status === 'live') return t.live;
-  if (status === 'in_progress') return t.inProgress;
-  return t.upcoming;
-}
-
-function getStatusClass(status) {
+function getStatusMeta(status, isArabic) {
   if (status === 'ended') {
     return {
+      label: isArabic ? 'منتهي' : 'Finished',
       card: 'border-gray-200 bg-gray-100/80 text-gray-500',
-      badge: 'bg-gray-200 text-gray-700',
-      winnerBox: 'bg-gray-50',
-      dot: 'bg-gray-400'
+      pill: 'bg-gray-200 text-gray-700 border border-gray-300',
+      soft: 'bg-gray-100 text-gray-600 border border-gray-200',
+      box: 'bg-gray-50'
     };
   }
 
   if (status === 'in_progress' || status === 'live') {
     return {
+      label: isArabic ? 'جاري' : 'In Progress',
       card: 'border-emerald-200 bg-white text-ink-heading',
-      badge: 'bg-emerald-100 text-emerald-900',
-      winnerBox: 'bg-cream/60',
-      dot: 'bg-emerald-400'
+      pill: 'bg-emerald-100 text-emerald-900 border border-emerald-200',
+      soft: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+      box: 'bg-emerald-50'
     };
   }
 
   return {
-    card: 'border-card-border/70 bg-white text-ink-heading',
-    badge: 'bg-brand/10 text-brand',
-    winnerBox: 'bg-cream/60',
-    dot: 'bg-brand'
+    label: isArabic ? 'قادم' : 'Upcoming',
+    card: 'border-amber-200 bg-white text-ink-heading',
+    pill: 'bg-amber-100 text-amber-900 border border-amber-200',
+    soft: 'bg-amber-50 text-amber-800 border border-amber-200',
+    box: 'bg-amber-50'
   };
+}
+
+function getWinnersLabel(count, isArabic) {
+  if (isArabic) {
+    if (count === 1) return 'فائز واحد';
+    return `${count} فائزين`;
+  }
+
+  if (count === 1) return '1 winner';
+  return `${count} winners`;
 }
 
 export default function RewardsPage() {
@@ -210,24 +214,19 @@ export default function RewardsPage() {
       </section>
 
       <section className="rounded-[2rem] border border-card-border/70 bg-white/75 p-5 shadow-sm">
-        <div className="mb-5 flex items-center justify-between">
-          <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-900">
-            {t.fresh}
-          </span>
-          <h2 className="text-xl font-bold text-ink-heading">{t.roundDraws}</h2>
-        </div>
+        <h2 className="mb-5 text-xl font-bold text-ink-heading">{t.roundDraws}</h2>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {rounds.map((round, index) => {
-            const classes = getStatusClass(round.status);
+            const meta = getStatusMeta(round.status, isArabic);
 
             return (
               <div
                 key={round.key}
-                className={`rounded-3xl border px-5 py-4 shadow-sm transition ${classes.card}`}
+                className={`rounded-3xl border px-5 py-4 shadow-sm transition ${meta.card}`}
               >
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/70 text-sm font-bold text-brand">
                     {index + 1}
                   </div>
 
@@ -244,23 +243,17 @@ export default function RewardsPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
-                    <span className={`rounded-full px-4 py-2 text-sm font-bold ${classes.badge}`}>
-                      {round.winnersCount === 2
-                        ? isArabic
-                          ? '2 فائزين'
-                          : '2 winners'
-                        : isArabic
-                          ? 'فائز واحد'
-                          : '1 winner'}
+                    <span className={`rounded-full px-4 py-2 text-sm font-bold ${meta.pill}`}>
+                      {getWinnersLabel(round.winnersCount, isArabic)}
                     </span>
 
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${classes.badge}`}>
-                      {getStatusText(round.status, t)}
+                    <span className={`rounded-full px-4 py-1.5 text-xs font-bold ${meta.soft}`}>
+                      {meta.label}
                     </span>
                   </div>
                 </div>
 
-                <div className={`mt-4 rounded-2xl p-4 ${classes.winnerBox}`}>
+                <div className={`mt-4 rounded-2xl p-4 ${meta.box}`}>
                   <p className="mb-2 text-sm font-bold">
                     {round.winnersCount === 2 ? t.winners : t.winner}
                   </p>
