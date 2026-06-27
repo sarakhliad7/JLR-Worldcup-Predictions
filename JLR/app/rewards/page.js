@@ -17,16 +17,16 @@ const content = {
     winner: 'Winner',
     employeeId: 'Employee ID',
     points: 'Points',
-    ended: 'Ended',
+    ended: 'Finished',
     live: 'Live',
-    inProgress: 'In progress',
+    inProgress: 'In Progress',
     upcoming: 'Upcoming',
-    announced: 'Finished',
-    noWinnersYet: 'Winners will appear after the round ends.',
+    noWinnersYet: 'Winners will appear after the round closes.',
+    locked: 'This round is closed and its winners are locked.',
     rules: [
       'Each round’s points are calculated from that round’s matches only.',
-      'The highest point holders in each round qualify for that round’s draw.',
-      'Winning one draw does not stop you from joining the upcoming draws.',
+      'The highest point holders in each round win that round’s reward.',
+      'Winning one round does not stop you from joining the upcoming rounds.',
       'Your overall ranking remains saved for the League Champions grand prize.'
     ],
     grandPrize: 'Grand Prize',
@@ -47,16 +47,16 @@ const content = {
     winner: 'الفائز',
     employeeId: 'الرقم الوظيفي',
     points: 'النقاط',
-    ended: 'انتهى',
+    ended: 'منتهي',
     live: 'مباشر',
     inProgress: 'جاري',
     upcoming: 'قادم',
-    announced: 'تم الإعلان',
-    noWinnersYet: 'سيظهر الفائزون بعد انتهاء الدور.',
+    noWinnersYet: 'سيظهر الفائزون بعد إغلاق الدور.',
+    locked: 'تم إغلاق هذا الدور وتثبيت الفائزين.',
     rules: [
       'يتم احتساب نقاط كل دور من مباريات ذلك الدور فقط.',
-      'أصحاب أعلى النقاط في كل دور يدخلون السحب الخاص بذلك الدور.',
-      'الفوز في أحد السحوبات لا يمنعك من المشاركة في السحوبات القادمة.',
+      'أصحاب أعلى النقاط في كل دور يفوزون بجائزة ذلك الدور.',
+      'الفوز في أحد الأدوار لا يمنعك من المشاركة في الأدوار القادمة.',
       'يبقى ترتيبك العام محفوظًا لجائزة أبطال الدوري في نهاية البطولة.'
     ],
     grandPrize: 'الجائزة الكبرى',
@@ -70,6 +70,7 @@ const fallbackRounds = [
     key: 'r32',
     winnersCount: 2,
     labels: { en: 'Round of 32', ar: 'دور 32' },
+    closeLabel: { en: 'Closes on 29 June', ar: 'يغلق في 29 يونيو' },
     status: 'upcoming',
     winners: []
   },
@@ -77,6 +78,7 @@ const fallbackRounds = [
     key: 'r16',
     winnersCount: 1,
     labels: { en: 'Round of 16', ar: 'دور 16' },
+    closeLabel: { en: 'Closes on 5 July', ar: 'يغلق في 5 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -84,6 +86,7 @@ const fallbackRounds = [
     key: 'qf',
     winnersCount: 1,
     labels: { en: 'Quarter-finals', ar: 'ربع النهائي' },
+    closeLabel: { en: 'Closes on 9 July', ar: 'يغلق في 9 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -91,6 +94,7 @@ const fallbackRounds = [
     key: 'sf',
     winnersCount: 1,
     labels: { en: 'Semi-finals', ar: 'نصف النهائي' },
+    closeLabel: { en: 'Closes on 14 July', ar: 'يغلق في 14 يوليو' },
     status: 'upcoming',
     winners: []
   },
@@ -98,6 +102,7 @@ const fallbackRounds = [
     key: 'final',
     winnersCount: 1,
     labels: { en: 'Final', ar: 'النهائي' },
+    closeLabel: { en: 'Closes on 19 July', ar: 'يغلق في 19 يوليو' },
     status: 'upcoming',
     winners: []
   }
@@ -112,22 +117,41 @@ function getSavedLanguage() {
   if (htmlLang === 'ar' || htmlDir === 'rtl') return 'ar';
   if (htmlLang === 'en' || htmlDir === 'ltr') return 'en';
 
-  const possibleValues = Object.keys(window.localStorage)
-    .map((key) => window.localStorage.getItem(key))
-    .filter(Boolean);
-
-  if (possibleValues.includes('ar')) return 'ar';
-  if (possibleValues.includes('en')) return 'en';
-
   return 'en';
 }
 
 function getStatusText(status, t) {
-  if (status === 'announced') return t.announced;
   if (status === 'ended') return t.ended;
   if (status === 'live') return t.live;
   if (status === 'in_progress') return t.inProgress;
   return t.upcoming;
+}
+
+function getStatusClass(status) {
+  if (status === 'ended') {
+    return {
+      card: 'border-gray-200 bg-gray-100/80 text-gray-500',
+      badge: 'bg-gray-200 text-gray-700',
+      winnerBox: 'bg-gray-50',
+      dot: 'bg-gray-400'
+    };
+  }
+
+  if (status === 'in_progress' || status === 'live') {
+    return {
+      card: 'border-emerald-200 bg-white text-ink-heading',
+      badge: 'bg-emerald-100 text-emerald-900',
+      winnerBox: 'bg-cream/60',
+      dot: 'bg-emerald-400'
+    };
+  }
+
+  return {
+    card: 'border-card-border/70 bg-white text-ink-heading',
+    badge: 'bg-brand/10 text-brand',
+    winnerBox: 'bg-cream/60',
+    dot: 'bg-brand'
+  };
 }
 
 export default function RewardsPage() {
@@ -194,72 +218,85 @@ export default function RewardsPage() {
         </div>
 
         <div className="space-y-3">
-          {rounds.map((round, index) => (
-            <div
-              key={round.key}
-              className="rounded-3xl border border-card-border/70 bg-white px-5 py-4 shadow-sm"
-            >
-              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
-                  {index + 1}
-                </div>
+          {rounds.map((round, index) => {
+            const classes = getStatusClass(round.status);
 
-                <div className={isArabic ? 'text-right' : 'text-left'}>
-                  <p className="text-base font-bold text-ink-heading">
-                    {round.labels?.[language] || round.labels?.en}
-                  </p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    {t.roundNote}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end gap-2">
-                  <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-900">
-                    {round.winnersCount === 2
-                      ? isArabic
-                        ? '2 فائزين'
-                        : '2 winners'
-                      : isArabic
-                        ? 'فائز واحد'
-                        : '1 winner'}
-                  </span>
-
-                  <span className="rounded-full bg-brand/10 px-3 py-1 text-xs font-bold text-brand">
-                    {getStatusText(round.status, t)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl bg-cream/60 p-4">
-                <p className="mb-3 text-sm font-bold text-ink-heading">
-                  {round.winnersCount === 2 ? t.winners : t.winner}
-                </p>
-
-                {round.winners?.length ? (
-                  <div className="space-y-2">
-                    {round.winners.map((winner, winnerIndex) => (
-                      <div
-                        key={`${winner.employeeCode}-${winnerIndex}`}
-                        className="rounded-2xl border border-card-border/60 bg-white px-4 py-3"
-                      >
-                        <p className="font-bold text-ink-heading">
-                          {winnerIndex + 1}. {winner.name}
-                        </p>
-                        <p className="mt-1 text-xs text-ink-muted">
-                          {t.employeeId}: {winner.employeeCode}
-                        </p>
-                        <p className="mt-1 text-xs font-bold text-brand">
-                          {t.points}: {winner.points}
-                        </p>
-                      </div>
-                    ))}
+            return (
+              <div
+                key={round.key}
+                className={`rounded-3xl border px-5 py-4 shadow-sm transition ${classes.card}`}
+              >
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand/10 text-sm font-bold text-brand">
+                    {index + 1}
                   </div>
-                ) : (
-                  <p className="text-sm text-ink-muted">{t.noWinnersYet}</p>
-                )}
+
+                  <div className={isArabic ? 'text-right' : 'text-left'}>
+                    <p className="text-base font-bold">
+                      {round.labels?.[language] || round.labels?.en}
+                    </p>
+                    <p className="mt-1 text-xs opacity-80">
+                      {round.closeLabel?.[language] || round.closeLabel?.en}
+                    </p>
+                    <p className="mt-1 text-xs opacity-70">
+                      {t.roundNote}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`rounded-full px-4 py-2 text-sm font-bold ${classes.badge}`}>
+                      {round.winnersCount === 2
+                        ? isArabic
+                          ? '2 فائزين'
+                          : '2 winners'
+                        : isArabic
+                          ? 'فائز واحد'
+                          : '1 winner'}
+                    </span>
+
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${classes.badge}`}>
+                      {getStatusText(round.status, t)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={`mt-4 rounded-2xl p-4 ${classes.winnerBox}`}>
+                  <p className="mb-2 text-sm font-bold">
+                    {round.winnersCount === 2 ? t.winners : t.winner}
+                  </p>
+
+                  {round.status === 'ended' ? (
+                    <p className="mb-3 text-xs font-bold text-gray-500">
+                      {t.locked}
+                    </p>
+                  ) : null}
+
+                  {round.winners?.length ? (
+                    <div className="space-y-2">
+                      {round.winners.map((winner, winnerIndex) => (
+                        <div
+                          key={`${winner.employeeCode}-${winnerIndex}`}
+                          className="rounded-2xl border border-card-border/60 bg-white px-4 py-3"
+                        >
+                          <p className="font-bold text-ink-heading">
+                            {winnerIndex + 1}. {winner.name}
+                          </p>
+                          <p className="mt-1 text-xs text-ink-muted">
+                            {t.employeeId}: {winner.employeeCode}
+                          </p>
+                          <p className="mt-1 text-xs font-bold text-brand">
+                            {t.points}: {winner.points}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm opacity-70">{t.noWinnersYet}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

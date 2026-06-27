@@ -8,7 +8,9 @@ const ROUND_CONFIG = [
   {
     key: 'r32',
     winnersCount: 2,
+    closingAt: '2026-06-29T20:59:59.000Z',
     labels: { en: 'Round of 32', ar: 'دور 32' },
+    closeLabel: { en: 'Closes on 29 June', ar: 'يغلق في 29 يونيو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('32') || r.includes('round of 32');
@@ -17,7 +19,9 @@ const ROUND_CONFIG = [
   {
     key: 'r16',
     winnersCount: 1,
+    closingAt: '2026-07-05T20:59:59.000Z',
     labels: { en: 'Round of 16', ar: 'دور 16' },
+    closeLabel: { en: 'Closes on 5 July', ar: 'يغلق في 5 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('16') || r.includes('round of 16');
@@ -26,7 +30,9 @@ const ROUND_CONFIG = [
   {
     key: 'qf',
     winnersCount: 1,
+    closingAt: '2026-07-09T20:59:59.000Z',
     labels: { en: 'Quarter-finals', ar: 'ربع النهائي' },
+    closeLabel: { en: 'Closes on 9 July', ar: 'يغلق في 9 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('quarter') || r.includes('8') || r.includes('qf');
@@ -35,7 +41,9 @@ const ROUND_CONFIG = [
   {
     key: 'sf',
     winnersCount: 1,
+    closingAt: '2026-07-14T20:59:59.000Z',
     labels: { en: 'Semi-finals', ar: 'نصف النهائي' },
+    closeLabel: { en: 'Closes on 14 July', ar: 'يغلق في 14 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('semi') || r.includes('4') || r.includes('sf');
@@ -44,7 +52,9 @@ const ROUND_CONFIG = [
   {
     key: 'final',
     winnersCount: 1,
+    closingAt: '2026-07-19T20:59:59.000Z',
     labels: { en: 'Final', ar: 'النهائي' },
+    closeLabel: { en: 'Closes on 19 July', ar: 'يغلق في 19 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r === 'final' || r.includes('final');
@@ -52,19 +62,17 @@ const ROUND_CONFIG = [
   }
 ];
 
-function getRoundStatus(matches) {
+function getRoundStatus(config, matches) {
+  const now = new Date();
+  const closingAt = new Date(config.closingAt);
+
+  if (now > closingAt) return 'ended';
+
   if (!matches.length) return 'upcoming';
-
-  const allFinished = matches.every(
-    (m) => m.status === 'FINISHED' && m.homeScore !== null && m.awayScore !== null
-  );
-
-  if (allFinished) return 'ended';
 
   const anyLive = matches.some((m) => m.status === 'LIVE');
   if (anyLive) return 'live';
 
-  const now = new Date();
   const anyStarted = matches.some((m) => new Date(m.kickoffAt) <= now);
   if (anyStarted) return 'in_progress';
 
@@ -72,28 +80,12 @@ function getRoundStatus(matches) {
 }
 
 export async function GET() {
-  const manualWinners = await prisma.rewardWinner.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          employeeCode: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: 'asc'
-    }
-  });
-
   const matches = await prisma.match.findMany({
     select: {
       id: true,
       round: true,
       kickoffAt: true,
-      status: true,
-      homeScore: true,
-      awayScore: true
+      status: true
     },
     orderBy: { kickoffAt: 'asc' }
   });
@@ -102,21 +94,10 @@ export async function GET() {
 
   for (const config of ROUND_CONFIG) {
     const roundMatches = matches.filter((m) => config.match(m.round));
-    const status = getRoundStatus(roundMatches);
+    const status = getRoundStatus(config, roundMatches);
     let winners = [];
 
-    const announcedWinners = manualWinners
-      .filter((winner) => winner.roundKey === config.key)
-      .map((winner) => ({
-        name: winner.user?.name || 'Unknown',
-        employeeCode: winner.user?.employeeCode || '-',
-        points: winner.points,
-        manual: true
-      }));
-
-    if (announcedWinners.length) {
-      winners = announcedWinners;
-    } else if (status === 'ended' && roundMatches.length) {
+    if (status === 'ended' && roundMatches.length) {
       const matchIds = roundMatches.map((m) => m.id);
 
       const grouped = await prisma.prediction.groupBy({
@@ -162,7 +143,9 @@ export async function GET() {
       key: config.key,
       winnersCount: config.winnersCount,
       labels: config.labels,
-      status: announcedWinners.length ? 'announced' : status,
+      closeLabel: config.closeLabel,
+      closingAt: config.closingAt,
+      status,
       matchesCount: roundMatches.length,
       winners
     });
