@@ -8,9 +8,10 @@ const ROUND_CONFIG = [
   {
     key: 'r32',
     winnersCount: 2,
-    closingAt: '2026-06-29T20:59:59.000Z',
+    startAt: '2026-06-27T21:00:00.000Z',
+    endAt: '2026-07-03T20:59:59.000Z',
     labels: { en: 'Round of 32', ar: 'دور 32' },
-    closeLabel: { en: 'Closes on 29 June', ar: 'يغلق في 29 يونيو' },
+    closeLabel: { en: '28 June - 3 July', ar: '28 يونيو - 3 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('32') || r.includes('round of 32');
@@ -19,9 +20,10 @@ const ROUND_CONFIG = [
   {
     key: 'r16',
     winnersCount: 1,
-    closingAt: '2026-07-05T20:59:59.000Z',
+    startAt: '2026-07-03T21:00:00.000Z',
+    endAt: '2026-07-07T20:59:59.000Z',
     labels: { en: 'Round of 16', ar: 'دور 16' },
-    closeLabel: { en: 'Closes on 5 July', ar: 'يغلق في 5 يوليو' },
+    closeLabel: { en: '4 July - 7 July', ar: '4 يوليو - 7 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('16') || r.includes('round of 16');
@@ -30,9 +32,10 @@ const ROUND_CONFIG = [
   {
     key: 'qf',
     winnersCount: 1,
-    closingAt: '2026-07-09T20:59:59.000Z',
+    startAt: '2026-07-08T21:00:00.000Z',
+    endAt: '2026-07-12T20:59:59.000Z',
     labels: { en: 'Quarter-finals', ar: 'ربع النهائي' },
-    closeLabel: { en: 'Closes on 9 July', ar: 'يغلق في 9 يوليو' },
+    closeLabel: { en: '9 July - 12 July', ar: '9 يوليو - 12 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('quarter') || r.includes('8') || r.includes('qf');
@@ -41,9 +44,10 @@ const ROUND_CONFIG = [
   {
     key: 'sf',
     winnersCount: 1,
-    closingAt: '2026-07-14T20:59:59.000Z',
+    startAt: '2026-07-13T21:00:00.000Z',
+    endAt: '2026-07-15T20:59:59.000Z',
     labels: { en: 'Semi-finals', ar: 'نصف النهائي' },
-    closeLabel: { en: 'Closes on 14 July', ar: 'يغلق في 14 يوليو' },
+    closeLabel: { en: '14 July - 15 July', ar: '14 يوليو - 15 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r.includes('semi') || r.includes('4') || r.includes('sf');
@@ -52,9 +56,10 @@ const ROUND_CONFIG = [
   {
     key: 'final',
     winnersCount: 1,
-    closingAt: '2026-07-19T20:59:59.000Z',
+    startAt: '2026-07-18T21:00:00.000Z',
+    endAt: '2026-07-19T20:59:59.000Z',
     labels: { en: 'Final', ar: 'النهائي' },
-    closeLabel: { en: 'Closes on 19 July', ar: 'يغلق في 19 يوليو' },
+    closeLabel: { en: '19 July', ar: '19 يوليو' },
     match: (round) => {
       const r = String(round || '').toLowerCase();
       return r === 'final' || r.includes('final');
@@ -62,39 +67,29 @@ const ROUND_CONFIG = [
   }
 ];
 
-function getRoundStatus(config, matches) {
+function getRoundStatus(config) {
   const now = new Date();
-  const closingAt = new Date(config.closingAt);
+  const startAt = new Date(config.startAt);
+  const endAt = new Date(config.endAt);
 
-  if (now > closingAt) return 'ended';
-
-  if (!matches.length) return 'upcoming';
-
-  const anyLive = matches.some((m) => m.status === 'LIVE');
-  if (anyLive) return 'live';
-
-  const anyStarted = matches.some((m) => new Date(m.kickoffAt) <= now);
-  if (anyStarted) return 'in_progress';
-
-  return 'upcoming';
+  if (now < startAt) return 'upcoming';
+  if (now > endAt) return 'ended';
+  return 'in_progress';
 }
 
 export async function GET() {
   const matches = await prisma.match.findMany({
     select: {
       id: true,
-      round: true,
-      kickoffAt: true,
-      status: true
-    },
-    orderBy: { kickoffAt: 'asc' }
+      round: true
+    }
   });
 
   const rounds = [];
 
   for (const config of ROUND_CONFIG) {
     const roundMatches = matches.filter((m) => config.match(m.round));
-    const status = getRoundStatus(config, roundMatches);
+    const status = getRoundStatus(config);
     let winners = [];
 
     if (status === 'ended' && roundMatches.length) {
@@ -144,7 +139,8 @@ export async function GET() {
       winnersCount: config.winnersCount,
       labels: config.labels,
       closeLabel: config.closeLabel,
-      closingAt: config.closingAt,
+      startAt: config.startAt,
+      endAt: config.endAt,
       status,
       matchesCount: roundMatches.length,
       winners
