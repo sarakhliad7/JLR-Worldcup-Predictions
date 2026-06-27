@@ -67,13 +67,29 @@ const ROUND_CONFIG = [
   }
 ];
 
-function getRoundStatus(config) {
+function getRoundStatus(config, matches) {
   const now = new Date();
-  const startAt = new Date(config.startAt);
+
+  const sortedMatches = [...matches]
+    .filter((m) => m.kickoffAt)
+    .sort((a, b) => new Date(a.kickoffAt) - new Date(b.kickoffAt));
+
+  const firstKickoff = sortedMatches[0]?.kickoffAt
+    ? new Date(sortedMatches[0].kickoffAt)
+    : new Date(config.startAt);
+
   const endAt = new Date(config.endAt);
 
-  if (now < startAt) return 'upcoming';
-  if (now > endAt) return 'ended';
+  const anyLive = matches.some((m) => m.status === 'LIVE');
+  if (anyLive) return 'in_progress';
+
+  const allFinished =
+    matches.length > 0 && matches.every((m) => m.status === 'FINISHED');
+
+  if (allFinished || now > endAt) return 'ended';
+
+  if (now < firstKickoff) return 'upcoming';
+
   return 'in_progress';
 }
 
@@ -81,7 +97,9 @@ export async function GET() {
   const matches = await prisma.match.findMany({
     select: {
       id: true,
-      round: true
+      round: true,
+      kickoffAt: true,
+      status: true
     }
   });
 
@@ -89,7 +107,7 @@ export async function GET() {
 
   for (const config of ROUND_CONFIG) {
     const roundMatches = matches.filter((m) => config.match(m.round));
-    const status = getRoundStatus(config);
+    const status = getRoundStatus(config, roundMatches);
     let winners = [];
 
     if (status === 'ended' && roundMatches.length) {
