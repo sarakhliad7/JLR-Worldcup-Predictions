@@ -37,7 +37,7 @@ export async function middleware(req) {
   const token = await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: true,
+    secureCookie: process.env.NODE_ENV === 'production',
   });
 
   if (!token && pathname.startsWith('/api')) {
@@ -45,13 +45,12 @@ export async function middleware(req) {
   }
 
   if (!token) {
-    const loginUrl = new URL('/login', req.url);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   if (
     (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) &&
-    token?.role !== 'ADMIN'
+    token.role !== 'ADMIN'
   ) {
     if (pathname.startsWith('/api/admin')) {
       return NextResponse.json({ error: 'err_forbidden' }, { status: 403 });

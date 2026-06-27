@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
 import { scoreMatchAndRecompute } from '../../../../../lib/recompute';
+import {
+  generateRewardWinnerForStage,
+  getStageKeyFromRound,
+} from '../../../../../lib/rewardWinner';
 
 export async function PATCH(req, { params }) {
   const { id } = params;
@@ -20,16 +24,21 @@ export async function PATCH(req, { params }) {
   if (body.homeTeamId !== undefined) data.homeTeamId = body.homeTeamId || null;
   if (body.awayTeamId !== undefined) data.awayTeamId = body.awayTeamId || null;
 
-  // Entering/correcting a result is the important path: it marks the match
-  // as admin-sourced (so the auto-sync won't overwrite it), flips status to
-  // FINISHED, and triggers a full points recalculation for this match.
   let enteredResult = false;
+
   if (body.homeScore !== undefined && body.awayScore !== undefined) {
     const homeScore = Number(body.homeScore);
     const awayScore = Number(body.awayScore);
-    if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0) {
+
+    if (
+      !Number.isInteger(homeScore) ||
+      !Number.isInteger(awayScore) ||
+      homeScore < 0 ||
+      awayScore < 0
+    ) {
       return NextResponse.json({ error: 'err_invalidScore' }, { status: 400 });
     }
+
     data.homeScore = homeScore;
     data.awayScore = awayScore;
     data.status = 'FINISHED';
@@ -45,26 +54,39 @@ export async function PATCH(req, { params }) {
     });
 
     let predictionsScored = 0;
+    let rewardWinner = null;
+
     if (enteredResult) {
       const result = await scoreMatchAndRecompute(id);
       predictionsScored = result.predictionsScored;
+
+      const stage = getStageKeyFromRound(match.round);
+      rewardWinner = await generateRewardWinnerForStage(stage);
     }
 
-    return NextResponse.json({ match, predictionsScored });
+    return NextResponse.json({
+      match,
+      predictionsScored,
+      rewardWinner,
+    });
   } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: 'admin_err_notFound' }, { status: 404 });
   }
 }
 
 export async function DELETE(req, { params }) {
   const { id } = params;
+
   try {
     await prisma.$transaction([
       prisma.prediction.deleteMany({ where: { matchId: id } }),
       prisma.match.delete({ where: { id } }),
     ]);
+
     return NextResponse.json({ ok: true });
   } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: 'admin_err_notFound' }, { status: 404 });
   }
 }

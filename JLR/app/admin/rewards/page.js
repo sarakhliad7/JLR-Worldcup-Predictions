@@ -2,67 +2,105 @@
 
 import { useEffect, useState } from 'react';
 
-const rounds = [
-  { key: 'r32', label: 'Round of 32 / دور 32' },
-  { key: 'r16', label: 'Round of 16 / دور 16' },
-  { key: 'qf', label: 'Quarter-finals / ربع النهائي' },
-  { key: 'sf', label: 'Semi-finals / نصف النهائي' },
-  { key: 'final', label: 'Final / النهائي' }
-];
-
 export default function AdminRewardsPage() {
+  const [rounds, setRounds] = useState([]);
   const [winners, setWinners] = useState([]);
-  const [roundKey, setRoundKey] = useState('r32');
-  const [employeeCode, setEmployeeCode] = useState('');
-  const [points, setPoints] = useState('');
+  const [roundKey, setRoundKey] = useState('Group Stage');
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingRounds, setLoadingRounds] = useState(true);
 
   async function loadWinners() {
-    const res = await fetch('/api/admin/rewards', { cache: 'no-store' });
-    const data = await res.json();
-    setWinners(data.winners || []);
+    try {
+      const res = await fetch('/api/admin/rewards', { cache: 'no-store' });
+      const data = await res.json();
+      setWinners(data.winners || []);
+    } catch (error) {
+      console.error(error);
+      setMessage('Failed to load winners.');
+    }
+  }
+
+  async function loadRounds() {
+    try {
+      const res = await fetch('/api/admin/rounds', { cache: 'no-store' });
+      const data = await res.json();
+      const dynamicRounds = data.rounds || [];
+
+      setRounds(dynamicRounds);
+
+      if (dynamicRounds.length > 0) {
+        setRoundKey(dynamicRounds[0].key);
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage('Failed to load stages.');
+    } finally {
+      setLoadingRounds(false);
+    }
   }
 
   useEffect(() => {
     loadWinners();
+    loadRounds();
   }, []);
 
-  async function addWinner(e) {
+  async function generateWinner(e) {
     e.preventDefault();
     setMessage('');
 
-    const res = await fetch('/api/admin/rewards', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        roundKey,
-        employeeCode,
-        points: Number(points || 0)
-      })
-    });
+    const selectedRound = roundKey || rounds[0]?.key;
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMessage(data.error || 'Something went wrong.');
+    if (!selectedRound) {
+      setMessage('Please select a stage first.');
       return;
     }
 
-    setEmployeeCode('');
-    setPoints('');
-    setMessage('Winner added successfully.');
-    loadWinners();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/rewards/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roundKey: selectedRound }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error || 'Something went wrong.');
+        return;
+      }
+
+      setMessage(
+        data.alreadyExists
+          ? 'Winner already exists for this stage.'
+          : 'Winner generated successfully.'
+      );
+
+      await loadWinners();
+    } catch (error) {
+      console.error(error);
+      setMessage('Failed to generate winner.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function deleteWinner(id) {
     const ok = window.confirm('Delete this winner?');
     if (!ok) return;
 
-    await fetch(`/api/admin/rewards?id=${id}`, {
-      method: 'DELETE'
-    });
+    try {
+      await fetch(`/api/admin/rewards?id=${id}`, {
+        method: 'DELETE',
+      });
 
-    loadWinners();
+      await loadWinners();
+    } catch (error) {
+      console.error(error);
+      setMessage('Failed to delete winner.');
+    }
   }
 
   function getRoundLabel(key) {
@@ -74,68 +112,49 @@ export default function AdminRewardsPage() {
       <section>
         <h1 className="text-3xl font-bold text-ink-heading">Rewards</h1>
         <p className="mt-2 text-ink-muted">
-          Announce reward winners manually by Employee ID.
+          Generate one winner automatically for each stage based on stage points.
         </p>
       </section>
 
       <form
-        onSubmit={addWinner}
-        className="grid gap-4 rounded-[2rem] border border-card-border bg-white/80 p-6 shadow-sm md:grid-cols-4"
+        onSubmit={generateWinner}
+        className="grid gap-4 rounded-[2rem] border border-card-border bg-white/80 p-6 shadow-sm md:grid-cols-2"
       >
         <div>
           <label className="mb-2 block text-sm font-bold text-ink-heading">
-            Round
+            Stage
           </label>
+
           <select
             value={roundKey}
             onChange={(e) => setRoundKey(e.target.value)}
             className="w-full rounded-2xl border border-card-border bg-white px-4 py-3"
           >
-            {rounds.map((round) => (
-              <option key={round.key} value={round.key}>
-                {round.label}
-              </option>
-            ))}
+            {loadingRounds ? (
+              <option value="">Loading stages...</option>
+            ) : rounds.length === 0 ? (
+              <option value="">No stages found</option>
+            ) : (
+              rounds.map((round) => (
+                <option key={round.key} value={round.key}>
+                  {round.label}
+                </option>
+              ))
+            )}
           </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-bold text-ink-heading">
-            Employee ID
-          </label>
-          <input
-            value={employeeCode}
-            onChange={(e) => setEmployeeCode(e.target.value)}
-            placeholder="e.g. 1001"
-            className="w-full rounded-2xl border border-card-border bg-white px-4 py-3"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-bold text-ink-heading">
-            Points
-          </label>
-          <input
-            value={points}
-            onChange={(e) => setPoints(e.target.value)}
-            placeholder="e.g. 18"
-            type="number"
-            className="w-full rounded-2xl border border-card-border bg-white px-4 py-3"
-          />
         </div>
 
         <div className="flex items-end">
           <button
             type="submit"
-            className="w-full rounded-2xl bg-brand px-5 py-3 font-bold text-white"
+            className="w-full rounded-2xl bg-[#9B6A43] px-5 py-3 font-bold text-white shadow-sm hover:opacity-90"
           >
-            Add Winner
+            {loading ? 'Generating...' : 'Generate Winner'}
           </button>
         </div>
 
         {message ? (
-          <p className="md:col-span-4 text-sm font-bold text-brand">
+          <p className="md:col-span-2 text-sm font-bold text-[#9B6A43]">
             {message}
           </p>
         ) : null}
@@ -145,10 +164,10 @@ export default function AdminRewardsPage() {
         <table className="w-full text-left">
           <thead className="border-b border-card-border text-sm text-ink-muted">
             <tr>
-              <th className="px-5 py-4">Round</th>
+              <th className="px-5 py-4">Stage</th>
               <th className="px-5 py-4">Name</th>
               <th className="px-5 py-4">Employee ID</th>
-              <th className="px-5 py-4">Points</th>
+              <th className="px-5 py-4">Stage Points</th>
               <th className="px-5 py-4">Action</th>
             </tr>
           </thead>
@@ -156,7 +175,9 @@ export default function AdminRewardsPage() {
           <tbody>
             {winners.map((winner) => (
               <tr key={winner.id} className="border-b border-card-border/70">
-                <td className="px-5 py-4 font-bold">{getRoundLabel(winner.roundKey)}</td>
+                <td className="px-5 py-4 font-bold">
+                  {getRoundLabel(winner.roundKey)}
+                </td>
                 <td className="px-5 py-4">{winner.user?.name}</td>
                 <td className="px-5 py-4">{winner.user?.employeeCode}</td>
                 <td className="px-5 py-4">{winner.points}</td>
@@ -175,7 +196,7 @@ export default function AdminRewardsPage() {
             {!winners.length ? (
               <tr>
                 <td colSpan="5" className="px-5 py-8 text-center text-ink-muted">
-                  No winners announced yet.
+                  No winners generated yet.
                 </td>
               </tr>
             ) : null}

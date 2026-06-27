@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const departmentId = searchParams.get('departmentId');
+  const round = searchParams.get('round');
 
   const baseWhere = {
     role: 'EMPLOYEE',
@@ -13,16 +14,18 @@ export async function GET(req) {
   };
 
   const users = await prisma.user.findMany({
-    where: {
-      ...baseWhere,
-      totalPoints: { gt: 0 },
-    },
+    where: baseWhere,
     include: {
       department: true,
       predictions: {
         select: {
           pointsAwarded: true,
           createdAt: true,
+          match: {
+            select: {
+              round: true,
+            },
+          },
         },
       },
       userAchievements: {
@@ -36,12 +39,26 @@ export async function GET(req) {
 
   const shaped = users
     .map((u) => {
-      const exactCount = u.predictions.filter((p) => p.pointsAwarded === 4).length;
-      const correctCount = u.predictions.filter(
+      const filteredPredictions = round
+        ? u.predictions.filter((p) => p.match?.round === round)
+        : u.predictions;
+
+      const calculatedPoints = round
+        ? filteredPredictions.reduce(
+            (sum, p) => sum + (p.pointsAwarded || 0),
+            0
+          )
+        : u.totalPoints;
+
+      const exactCount = filteredPredictions.filter(
+        (p) => p.pointsAwarded === 4
+      ).length;
+
+      const correctCount = filteredPredictions.filter(
         (p) => p.pointsAwarded != null && p.pointsAwarded > 0
       ).length;
 
-      const earliestCorrectSubmission = u.predictions
+      const earliestCorrectSubmission = filteredPredictions
         .filter((p) => p.pointsAwarded != null && p.pointsAwarded > 0)
         .map((p) => new Date(p.createdAt).getTime());
 
@@ -60,7 +77,7 @@ export async function GET(req) {
               colorHex: u.department.colorHex,
             }
           : null,
-        totalPoints: u.totalPoints,
+        totalPoints: calculatedPoints,
         exactCount,
         correctCount,
         currentStreak: u.currentStreak,
@@ -68,6 +85,7 @@ export async function GET(req) {
         _earliestSubmission: earliestSubmission,
       };
     })
+    .filter((u) => u.totalPoints > 0)
     .sort((a, b) => {
       if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
       if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
@@ -82,5 +100,6 @@ export async function GET(req) {
   return NextResponse.json({
     leaderboard: shaped,
     participantCount: shaped.length,
+    round: round || 'overall',
   });
 }
