@@ -72,21 +72,25 @@ async function getCurrentStage() {
   return 'Final';
 }
 
+function getUserPoints(user, roundFilter) {
+  const filteredPredictions = roundFilter
+    ? user.predictions.filter(
+        (p) => normalizeStage(p.match?.round) === roundFilter
+      )
+    : user.predictions.filter((p) => normalizeStage(p.match?.round));
+
+  const totalPoints = filteredPredictions.reduce(
+    (sum, p) => sum + (p.pointsAwarded || 0),
+    0
+  );
+
+  return { filteredPredictions, totalPoints };
+}
+
 function buildUserLeaderboard(users, roundFilter) {
   return users
     .map((u) => {
-      const filteredPredictions = roundFilter
-        ? u.predictions.filter(
-            (p) => normalizeStage(p.match?.round) === roundFilter
-          )
-        : u.predictions.filter((p) => normalizeStage(p.match?.round));
-
-      const calculatedPoints = roundFilter
-        ? filteredPredictions.reduce(
-            (sum, p) => sum + (p.pointsAwarded || 0),
-            0
-          )
-        : u.totalPoints;
+      const { filteredPredictions, totalPoints } = getUserPoints(u, roundFilter);
 
       const exactCount = filteredPredictions.filter(
         (p) => p.pointsAwarded === 4
@@ -116,7 +120,7 @@ function buildUserLeaderboard(users, roundFilter) {
               colorHex: u.department.colorHex,
             }
           : null,
-        totalPoints: calculatedPoints,
+        totalPoints,
         exactCount,
         correctCount,
         currentStreak: u.currentStreak,
@@ -143,6 +147,10 @@ function buildDepartmentLeaderboard(users) {
   for (const user of users) {
     if (!user.department) continue;
 
+    const { totalPoints } = getUserPoints(user, null);
+
+    if (totalPoints <= 0) continue;
+
     const deptId = user.department.id;
 
     if (!departments.has(deptId)) {
@@ -157,7 +165,7 @@ function buildDepartmentLeaderboard(users) {
     }
 
     const dept = departments.get(deptId);
-    dept.totalPoints += user.totalPoints || 0;
+    dept.totalPoints += totalPoints;
     dept.participantCount += 1;
   }
 
