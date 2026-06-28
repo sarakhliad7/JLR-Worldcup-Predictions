@@ -60,66 +60,20 @@ async function getCurrentStage() {
     return now >= start && now <= end;
   });
 
-  if (stageByDate) {
-    return stageByDate.key;
-  }
+  if (stageByDate) return stageByDate.key;
 
   const nextStage = ACTIVE_STAGES.find((stage) => {
     const end = new Date(stage.end);
     return now <= end;
   });
 
-  if (nextStage) {
-    return nextStage.key;
-  }
+  if (nextStage) return nextStage.key;
 
   return 'Final';
 }
 
-export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-
-  const departmentId = searchParams.get('departmentId');
-  const mode = searchParams.get('mode') || 'overall';
-
-  const currentStage = await getCurrentStage();
-  const currentStageMeta = getStageMeta(currentStage);
-
-  const stage =
-    mode === 'current'
-      ? currentStage
-      : searchParams.get('stage');
-
-  const roundFilter = stage ? normalizeStage(stage) : null;
-
-  const users = await prisma.user.findMany({
-    where: {
-      role: 'EMPLOYEE',
-      ...(departmentId ? { departmentId } : {}),
-    },
-    include: {
-      department: true,
-      predictions: {
-        select: {
-          pointsAwarded: true,
-          createdAt: true,
-          match: {
-            select: {
-              round: true,
-            },
-          },
-        },
-      },
-      userAchievements: {
-        include: {
-          achievement: true,
-        },
-      },
-    },
-    take: 500,
-  });
-
-  const shaped = users
+function buildUserLeaderboard(users, roundFilter) {
+  return users
     .map((u) => {
       const filteredPredictions = roundFilter
         ? u.predictions.filter(
@@ -156,6 +110,7 @@ export async function GET(req) {
         avatarLabel: u.avatarLabel || u.name.slice(0, 2),
         department: u.department
           ? {
+              id: u.department.id,
               name: u.department.name,
               nameAr: u.department.nameAr || u.department.name,
               colorHex: u.department.colorHex,
@@ -180,10 +135,98 @@ export async function GET(req) {
       rank: idx + 1,
       ...rest,
     }));
+}
+
+function buildDepartmentLeaderboard(users) {
+  const departments = new Map();
+
+  for (const user of users) {
+    if (!user.department) continue;
+
+    const deptId = user.department.id;
+
+    if (!departments.has(deptId)) {
+      departments.set(deptId, {
+        id: deptId,
+        name: user.department.name,
+        nameAr: user.department.nameAr || user.department.name,
+        colorHex: user.department.colorHex,
+        totalPoints: 0,
+        participantCount: 0,
+      });
+    }
+
+    const dept = departments.get(deptId);
+    dept.totalPoints += user.totalPoints || 0;
+    dept.participantCount += 1;
+  }
+
+  return Array.from(departments.values())
+    .filter((dept) => dept.totalPoints > 0)
+    .sort((a, b) => b.totalPoints - a.totalPoints)
+    .map((dept, idx) => ({
+      rank: idx + 1,
+      id: dept.id,
+      name: dept.name,
+      nameAr: dept.nameAr,
+      avatarLabel: dept.name.slice(0, 2).toUpperCase(),
+      department: null,
+      totalPoints: dept.totalPoints,
+      participantCount: dept.participantCount,
+      colorHex: dept.colorHex,
+      isDepartment: true,
+    }));
+}
+
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+
+  const mode = searchParams.get('mode') || 'overall';
+
+  const currentStage = await getCurrentStage();
+  const currentStageMeta = getStageMeta(currentStage);
+
+  const stage =
+    mode === 'current'
+      ? currentStage
+      : searchParams.get('stage');
+
+  const roundFilter = stage ? normalizeStage(stage) : null;
+
+  const users = await prisma.user.findMany({
+    where: {
+      role: 'EMPLOYEE',
+    },
+    include: {
+      department: true,
+      predictions: {
+        select: {
+          pointsAwarded: true,
+          createdAt: true,
+          match: {
+            select: {
+              round: true,
+            },
+          },
+        },
+      },
+      userAchievements: {
+        include: {
+          achievement: true,
+        },
+      },
+    },
+    take: 500,
+  });
+
+  const leaderboard =
+    mode === 'department'
+      ? buildDepartmentLeaderboard(users)
+      : buildUserLeaderboard(users, roundFilter);
 
   return NextResponse.json({
-    leaderboard: shaped,
-    participantCount: shaped.length,
+    leaderboard,
+    participantCount: leaderboard.length,
     mode,
     currentStage,
     currentStageAr: currentStageMeta?.labelAr || currentStage,

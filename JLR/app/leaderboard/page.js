@@ -16,7 +16,6 @@ function stageLabel(stage, locale) {
     'Round of 16': 'دور ١٦',
     'Quarter-final': 'ربع النهائي',
     'Semi-final': 'نصف النهائي',
-    'Match for third place': 'مباراة تحديد المركز الثالث',
     Final: 'النهائي',
   };
 
@@ -29,8 +28,6 @@ export default function LeaderboardPage() {
   const { t, locale } = useLocale();
 
   const [mode, setMode] = useState('overall');
-  const [departments, setDepartments] = useState([]);
-  const [selectedDept, setSelectedDept] = useState('');
   const [leaderboard, setLeaderboard] = useState(null);
   const [currentStage, setCurrentStage] = useState('');
 
@@ -39,21 +36,11 @@ export default function LeaderboardPage() {
   }, [status, router]);
 
   useEffect(() => {
-    fetch('/api/departments')
-      .then((r) => r.json())
-      .then((d) => setDepartments(d.departments || []));
-  }, []);
-
-  useEffect(() => {
     setLeaderboard(null);
 
     let qs = '';
-
     if (mode === 'current') qs = '?mode=current';
-
-    if (mode === 'department' && selectedDept) {
-      qs = `?departmentId=${selectedDept}`;
-    }
+    if (mode === 'department') qs = '?mode=department';
 
     fetch(`/api/leaderboard${qs}`)
       .then((r) => r.json())
@@ -65,11 +52,19 @@ export default function LeaderboardPage() {
             : d.currentStage || ''
         );
       });
-  }, [mode, selectedDept, locale]);
+  }, [mode, locale]);
 
   const top3 = leaderboard?.slice(0, 3);
   const rest = leaderboard?.slice(3);
   const participantCount = leaderboard?.length || 0;
+
+  function displayName(item) {
+    if (mode === 'department' && locale === 'ar') {
+      return item.nameAr || item.name;
+    }
+
+    return item.name;
+  }
 
   function deptName(dept) {
     if (!dept) return '';
@@ -77,11 +72,24 @@ export default function LeaderboardPage() {
   }
 
   function pointsLabel() {
+    if (mode === 'current') return locale === 'ar' ? 'نقاط الدور' : 'stage pts';
+    return locale === 'ar' ? 'نقاط' : 'pts';
+  }
+
+  function subtitle() {
     if (mode === 'current') {
-      return locale === 'ar' ? 'نقاط الدور' : 'stage pts';
+      return locale === 'ar'
+        ? `ترتيب الدور الحالي: ${currentStage || ''}`
+        : `Current stage ranking${currentStage ? `: ${currentStage}` : ''}`;
     }
 
-    return locale === 'ar' ? 'نقاط' : 'pts';
+    if (mode === 'department') {
+      return locale === 'ar'
+        ? 'ترتيب الأقسام حسب مجموع نقاط الموظفين'
+        : 'Departments ranked by total employee points';
+    }
+
+    return t('leaderboard_subtitle');
   }
 
   return (
@@ -95,21 +103,19 @@ export default function LeaderboardPage() {
           {t('leaderboard_title')}
         </h2>
 
-        <p className="text-ink-faint text-xs mt-1">
-          {mode === 'current'
-            ? locale === 'ar'
-              ? `ترتيب الدور الحالي: ${currentStage || ''}`
-              : `Current stage ranking${currentStage ? `: ${currentStage}` : ''}`
-            : t('leaderboard_subtitle')}
-        </p>
+        <p className="text-ink-faint text-xs mt-1">{subtitle()}</p>
 
         {leaderboard !== null && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-gold/10 border border-gold/20 px-3 py-1.5">
             <span className="text-sm">👥</span>
             <span className="text-xs font-bold text-gold-dark">
-              {locale === 'ar'
-                ? `${participantCount} مشارك`
-                : `${participantCount} Participants`}
+              {mode === 'department'
+                ? locale === 'ar'
+                  ? `${participantCount} أقسام`
+                  : `${participantCount} Departments`
+                : locale === 'ar'
+                  ? `${participantCount} مشارك`
+                  : `${participantCount} Participants`}
             </span>
           </div>
         )}
@@ -117,62 +123,32 @@ export default function LeaderboardPage() {
 
       <div className="grid grid-cols-3 gap-2 bg-card-soft rounded-full p-1 border border-card-border/60 shadow-sm">
         <button
-          onClick={() => {
-            setMode('department');
-          }}
+          onClick={() => setMode('department')}
           className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
-            mode === 'department'
-              ? 'bg-gold text-white shadow-sm'
-              : 'text-ink-body'
+            mode === 'department' ? 'bg-gold text-white shadow-sm' : 'text-ink-body'
           }`}
         >
           {locale === 'ar' ? 'حسب القسم' : 'Department'}
         </button>
 
         <button
-          onClick={() => {
-            setMode('current');
-            setSelectedDept('');
-          }}
+          onClick={() => setMode('current')}
           className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
-            mode === 'current'
-              ? 'bg-gold text-white shadow-sm'
-              : 'text-ink-body'
+            mode === 'current' ? 'bg-gold text-white shadow-sm' : 'text-ink-body'
           }`}
         >
           {locale === 'ar' ? 'الدور الحالي' : 'Current Stage'}
         </button>
 
         <button
-          onClick={() => {
-            setMode('overall');
-            setSelectedDept('');
-          }}
+          onClick={() => setMode('overall')}
           className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
-            mode === 'overall'
-              ? 'bg-gold text-white shadow-sm'
-              : 'text-ink-body'
+            mode === 'overall' ? 'bg-gold text-white shadow-sm' : 'text-ink-body'
           }`}
         >
           {locale === 'ar' ? 'العام' : 'Overall'}
         </button>
       </div>
-
-      {mode === 'department' && (
-        <select
-          value={selectedDept}
-          onChange={(e) => setSelectedDept(e.target.value)}
-          className="w-full rounded-xl bg-card-soft border border-card-border/60 text-ink px-4 py-2.5 text-sm focus-ring shadow-sm"
-        >
-          <option value="">{t('leaderboard_chooseDept')}</option>
-
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>
-              {deptName(d)} ({d.userCount})
-            </option>
-          ))}
-        </select>
-      )}
 
       {mode === 'current' && currentStage && (
         <div className="rounded-2xl bg-gold/10 border border-gold/20 px-4 py-3">
@@ -191,6 +167,19 @@ export default function LeaderboardPage() {
         </div>
       )}
 
+      {mode === 'department' && (
+        <div className="rounded-2xl bg-gold/10 border border-gold/20 px-4 py-3">
+          <p className="text-xs text-gold-dark font-bold">
+            🏢 {locale === 'ar' ? 'ترتيب الأقسام' : 'Department Leaderboard'}
+          </p>
+          <p className="text-[11px] text-ink-faint mt-1">
+            {locale === 'ar'
+              ? 'يتم جمع نقاط جميع الموظفين داخل كل قسم.'
+              : 'Total points are calculated by summing all employees in each department.'}
+          </p>
+        </div>
+      )}
+
       {leaderboard === null && (
         <p className="text-ink-faint text-center py-10 text-sm">
           {t('loading')}
@@ -203,15 +192,15 @@ export default function LeaderboardPage() {
         </p>
       )}
 
-      {top3?.length > 0 && (
+      {mode !== 'department' && top3?.length > 0 && (
         <div className="bg-gradient-to-br from-card-soft to-cream-deep border border-gold/20 rounded-card py-6 px-2 shadow-sm">
           <Podium top3={top3} />
         </div>
       )}
 
-      {rest?.length > 0 && (
+      {leaderboard?.length > 0 && (
         <div className="space-y-2">
-          {rest.map((u) => (
+          {(mode === 'department' ? leaderboard : rest).map((u) => (
             <div
               key={u.id}
               className="rounded-2xl bg-card-soft border border-card-border/60 shadow-sm px-4 py-3 flex items-center gap-3"
@@ -223,7 +212,7 @@ export default function LeaderboardPage() {
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border border-white/60"
                 style={{
-                  backgroundColor: `${u.department?.colorHex || '#9B6A43'}26`,
+                  backgroundColor: `${u.colorHex || u.department?.colorHex || '#9B6A43'}26`,
                   color: '#3A2C22',
                 }}
               >
@@ -232,14 +221,20 @@ export default function LeaderboardPage() {
 
               <div className="flex-1 min-w-0">
                 <p className="text-ink text-sm font-bold truncate">
-                  {u.name}
+                  {displayName(u)}
                 </p>
 
-                {u.department && (
+                {mode === 'department' ? (
+                  <p className="text-ink-faint text-[11px] truncate">
+                    {locale === 'ar'
+                      ? `${u.participantCount || 0} موظف`
+                      : `${u.participantCount || 0} employees`}
+                  </p>
+                ) : u.department ? (
                   <p className="text-ink-faint text-[11px] truncate">
                     {deptName(u.department)}
                   </p>
-                )}
+                ) : null}
               </div>
 
               <div className="text-end shrink-0">
