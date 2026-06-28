@@ -3,18 +3,74 @@ import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const ACTIVE_STAGES = [
+  'Round of 32',
+  'Round of 16',
+  'Quarter-final',
+  'Semi-final',
+  'Match for third place',
+  'Final',
+];
+
+function normalizeStage(round) {
+  if (!round) return null;
+
+  if (round === 'Quarter-finals') return 'Quarter-final';
+  if (round === 'Semi-finals') return 'Semi-final';
+  if (round === 'Match for Third Place') return 'Match for third place';
+
+  return round;
+}
+
+function getRoundFilter(stage) {
+  return normalizeStage(stage);
+}
+
+async function getCurrentStage() {
+  for (const stage of ACTIVE_STAGES) {
+    const match = await prisma.match.findFirst({
+      where: {
+        round: stage,
+        status: {
+          not: 'FINISHED',
+        },
+      },
+      orderBy: {
+        kickoffAt: 'asc',
+      },
+      select: {
+        round: true,
+      },
+    });
+
+    if (match) {
+      return stage;
+    }
+  }
+
+  return 'Final';
+}
+
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const departmentId = searchParams.get('departmentId');
-  const round = searchParams.get('round');
 
-  const baseWhere = {
-    role: 'EMPLOYEE',
-    ...(departmentId ? { departmentId } : {}),
-  };
+  const departmentId = searchParams.get('departmentId');
+  const mode = searchParams.get('mode') || 'overall';
+
+  const currentStage = await getCurrentStage();
+
+  const stage =
+    mode === 'current'
+      ? currentStage
+      : searchParams.get('stage');
+
+  const roundFilter = stage ? getRoundFilter(stage) : null;
 
   const users = await prisma.user.findMany({
-    where: baseWhere,
+    where: {
+      role: 'EMPLOYEE',
+      ...(departmentId ? { departmentId } : {}),
+    },
     include: {
       department: true,
       predictions: {
@@ -39,11 +95,13 @@ export async function GET(req) {
 
   const shaped = users
     .map((u) => {
-      const filteredPredictions = round
-        ? u.predictions.filter((p) => p.match?.round === round)
+      const filteredPredictions = roundFilter
+        ? u.predictions.filter(
+            (p) => normalizeStage(p.match?.round) === roundFilter
+          )
         : u.predictions;
 
-      const calculatedPoints = round
+      const calculatedPoints = roundFilter
         ? filteredPredictions.reduce(
             (sum, p) => sum + (p.pointsAwarded || 0),
             0
@@ -100,6 +158,8 @@ export async function GET(req) {
   return NextResponse.json({
     leaderboard: shaped,
     participantCount: shaped.length,
-    round: round || 'overall',
+    mode,
+    currentStage,
+    stage: stage || 'overall',
   });
 }

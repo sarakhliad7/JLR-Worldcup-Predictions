@@ -10,14 +10,29 @@ function rankLabel(rank) {
   return `#${rank}`;
 }
 
+function stageLabel(stage, locale) {
+  const ar = {
+    'Round of 32': 'دور ٣٢',
+    'Round of 16': 'دور ١٦',
+    'Quarter-final': 'ربع النهائي',
+    'Semi-final': 'نصف النهائي',
+    'Match for third place': 'مباراة تحديد المركز الثالث',
+    Final: 'النهائي',
+  };
+
+  return locale === 'ar' ? ar[stage] || stage : stage;
+}
+
 export default function LeaderboardPage() {
   const { status } = useSession();
   const router = useRouter();
   const { t, locale } = useLocale();
+
   const [mode, setMode] = useState('overall');
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState('');
   const [leaderboard, setLeaderboard] = useState(null);
+  const [currentStage, setCurrentStage] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login');
@@ -32,15 +47,25 @@ export default function LeaderboardPage() {
   useEffect(() => {
     setLeaderboard(null);
 
-    const qs =
-      mode === 'department' && selectedDept
-        ? `?departmentId=${selectedDept}`
-        : '';
+    let qs = '';
+
+    if (mode === 'current') qs = '?mode=current';
+
+    if (mode === 'department' && selectedDept) {
+      qs = `?departmentId=${selectedDept}`;
+    }
 
     fetch(`/api/leaderboard${qs}`)
       .then((r) => r.json())
-      .then((d) => setLeaderboard(d.leaderboard || []));
-  }, [mode, selectedDept]);
+      .then((d) => {
+        setLeaderboard(d.leaderboard || []);
+        setCurrentStage(
+          locale === 'ar'
+            ? d.currentStageAr || stageLabel(d.currentStage, locale)
+            : d.currentStage || ''
+        );
+      });
+  }, [mode, selectedDept, locale]);
 
   const top3 = leaderboard?.slice(0, 3);
   const rest = leaderboard?.slice(3);
@@ -49,6 +74,14 @@ export default function LeaderboardPage() {
   function deptName(dept) {
     if (!dept) return '';
     return locale === 'ar' ? dept.nameAr || dept.name : dept.name;
+  }
+
+  function pointsLabel() {
+    if (mode === 'current') {
+      return locale === 'ar' ? 'نقاط الدور' : 'stage pts';
+    }
+
+    return locale === 'ar' ? 'نقاط' : 'pts';
   }
 
   return (
@@ -63,43 +96,65 @@ export default function LeaderboardPage() {
         </h2>
 
         <p className="text-ink-faint text-xs mt-1">
-          {t('leaderboard_subtitle')}
+          {mode === 'current'
+            ? locale === 'ar'
+              ? `ترتيب الدور الحالي: ${currentStage || ''}`
+              : `Current stage ranking${currentStage ? `: ${currentStage}` : ''}`
+            : t('leaderboard_subtitle')}
         </p>
 
         {leaderboard !== null && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-gold/10 border border-gold/20 px-3 py-1.5">
             <span className="text-sm">👥</span>
             <span className="text-xs font-bold text-gold-dark">
-              {participantCount} Participants
+              {locale === 'ar'
+                ? `${participantCount} مشارك`
+                : `${participantCount} Participants`}
             </span>
           </div>
         )}
       </div>
 
-      <div className="flex gap-2 bg-card-soft rounded-full p-1 border border-card-border/60 shadow-sm">
+      <div className="grid grid-cols-3 gap-2 bg-card-soft rounded-full p-1 border border-card-border/60 shadow-sm">
         <button
           onClick={() => {
-            setMode('overall');
-            setSelectedDept('');
+            setMode('department');
           }}
-          className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors focus-ring ${
-            mode === 'overall'
-              ? 'bg-gold text-white shadow-sm'
-              : 'text-ink-body'
-          }`}
-        >
-          {t('leaderboard_overall')}
-        </button>
-
-        <button
-          onClick={() => setMode('department')}
-          className={`flex-1 rounded-full py-2 text-sm font-semibold transition-colors focus-ring ${
+          className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
             mode === 'department'
               ? 'bg-gold text-white shadow-sm'
               : 'text-ink-body'
           }`}
         >
-          {t('leaderboard_byDept')}
+          {locale === 'ar' ? 'حسب القسم' : 'Department'}
+        </button>
+
+        <button
+          onClick={() => {
+            setMode('current');
+            setSelectedDept('');
+          }}
+          className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
+            mode === 'current'
+              ? 'bg-gold text-white shadow-sm'
+              : 'text-ink-body'
+          }`}
+        >
+          {locale === 'ar' ? 'الدور الحالي' : 'Current Stage'}
+        </button>
+
+        <button
+          onClick={() => {
+            setMode('overall');
+            setSelectedDept('');
+          }}
+          className={`rounded-full py-2 text-xs font-semibold transition-colors focus-ring ${
+            mode === 'overall'
+              ? 'bg-gold text-white shadow-sm'
+              : 'text-ink-body'
+          }`}
+        >
+          {locale === 'ar' ? 'العام' : 'Overall'}
         </button>
       </div>
 
@@ -117,6 +172,23 @@ export default function LeaderboardPage() {
             </option>
           ))}
         </select>
+      )}
+
+      {mode === 'current' && currentStage && (
+        <div className="rounded-2xl bg-gold/10 border border-gold/20 px-4 py-3">
+          <p className="text-xs text-gold-dark font-bold">
+            🏆{' '}
+            {locale === 'ar'
+              ? `المرشحون لجائزة الدور: ${currentStage}`
+              : `Reward candidates for: ${currentStage}`}
+          </p>
+
+          <p className="text-[11px] text-ink-faint mt-1">
+            {locale === 'ar'
+              ? 'هذا الترتيب يعتمد على نقاط الدور الحالي فقط.'
+              : 'This ranking uses points from the current stage only.'}
+          </p>
+        </div>
       )}
 
       {leaderboard === null && (
@@ -174,7 +246,9 @@ export default function LeaderboardPage() {
                 <p className="font-tabular text-gold-dark font-extrabold text-lg leading-none">
                   {u.totalPoints}
                 </p>
-                <p className="text-[10px] text-ink-faint mt-1">pts</p>
+                <p className="text-[10px] text-ink-faint mt-1">
+                  {pointsLabel()}
+                </p>
               </div>
             </div>
           ))}
