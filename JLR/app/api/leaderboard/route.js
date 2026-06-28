@@ -4,12 +4,36 @@ import { prisma } from '../../../lib/prisma';
 export const dynamic = 'force-dynamic';
 
 const ACTIVE_STAGES = [
-  'Round of 32',
-  'Round of 16',
-  'Quarter-final',
-  'Semi-final',
-  'Match for third place',
-  'Final',
+  {
+    key: 'Round of 32',
+    labelAr: 'دور ٣٢',
+    start: '2026-06-28T00:00:00+03:00',
+    end: '2026-07-04T23:59:59+03:00',
+  },
+  {
+    key: 'Round of 16',
+    labelAr: 'دور ١٦',
+    start: '2026-07-05T00:00:00+03:00',
+    end: '2026-07-07T23:59:59+03:00',
+  },
+  {
+    key: 'Quarter-final',
+    labelAr: 'ربع النهائي',
+    start: '2026-07-09T00:00:00+03:00',
+    end: '2026-07-12T23:59:59+03:00',
+  },
+  {
+    key: 'Semi-final',
+    labelAr: 'نصف النهائي',
+    start: '2026-07-14T00:00:00+03:00',
+    end: '2026-07-15T23:59:59+03:00',
+  },
+  {
+    key: 'Final',
+    labelAr: 'النهائي',
+    start: '2026-07-19T00:00:00+03:00',
+    end: '2026-07-19T23:59:59+03:00',
+  },
 ];
 
 function normalizeStage(round) {
@@ -17,35 +41,36 @@ function normalizeStage(round) {
 
   if (round === 'Quarter-finals') return 'Quarter-final';
   if (round === 'Semi-finals') return 'Semi-final';
-  if (round === 'Match for Third Place') return 'Match for third place';
+  if (round === 'Match for Third Place') return null;
+  if (round === 'Match for third place') return null;
 
   return round;
 }
 
-function getRoundFilter(stage) {
-  return normalizeStage(stage);
+function getStageMeta(stageKey) {
+  return ACTIVE_STAGES.find((stage) => stage.key === stageKey) || null;
 }
 
 async function getCurrentStage() {
-  for (const stage of ACTIVE_STAGES) {
-    const match = await prisma.match.findFirst({
-      where: {
-        round: stage,
-        status: {
-          not: 'FINISHED',
-        },
-      },
-      orderBy: {
-        kickoffAt: 'asc',
-      },
-      select: {
-        round: true,
-      },
-    });
+  const now = new Date();
 
-    if (match) {
-      return stage;
-    }
+  const stageByDate = ACTIVE_STAGES.find((stage) => {
+    const start = new Date(stage.start);
+    const end = new Date(stage.end);
+    return now >= start && now <= end;
+  });
+
+  if (stageByDate) {
+    return stageByDate.key;
+  }
+
+  const nextStage = ACTIVE_STAGES.find((stage) => {
+    const end = new Date(stage.end);
+    return now <= end;
+  });
+
+  if (nextStage) {
+    return nextStage.key;
   }
 
   return 'Final';
@@ -58,13 +83,14 @@ export async function GET(req) {
   const mode = searchParams.get('mode') || 'overall';
 
   const currentStage = await getCurrentStage();
+  const currentStageMeta = getStageMeta(currentStage);
 
   const stage =
     mode === 'current'
       ? currentStage
       : searchParams.get('stage');
 
-  const roundFilter = stage ? getRoundFilter(stage) : null;
+  const roundFilter = stage ? normalizeStage(stage) : null;
 
   const users = await prisma.user.findMany({
     where: {
@@ -99,7 +125,7 @@ export async function GET(req) {
         ? u.predictions.filter(
             (p) => normalizeStage(p.match?.round) === roundFilter
           )
-        : u.predictions;
+        : u.predictions.filter((p) => normalizeStage(p.match?.round));
 
       const calculatedPoints = roundFilter
         ? filteredPredictions.reduce(
@@ -160,6 +186,8 @@ export async function GET(req) {
     participantCount: shaped.length,
     mode,
     currentStage,
+    currentStageAr: currentStageMeta?.labelAr || currentStage,
     stage: stage || 'overall',
+    stageAr: getStageMeta(stage)?.labelAr || 'العام',
   });
 }

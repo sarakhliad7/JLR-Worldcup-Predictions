@@ -2,22 +2,27 @@ import { prisma } from './prisma';
 
 function getStageFromRound(round) {
   if (!round) return null;
-  if (round.startsWith('Matchday')) return 'Group Stage';
+
+  if (round.startsWith('Matchday')) return null;
+  if (round === 'Match for Third Place') return null;
+  if (round === 'Match for third place') return null;
+
+  if (round === 'Quarter-finals') return 'Quarter-final';
+  if (round === 'Semi-finals') return 'Semi-final';
+
   return round;
 }
 
 function getRoundWhereForStage(stage) {
-  if (stage === 'Group Stage') {
-    return {
-      startsWith: 'Matchday',
-    };
-  }
-
+  if (!stage) return null;
   return stage;
 }
 
 export async function generateRewardWinnerForStage(stage) {
   if (!stage) return null;
+
+  const roundFilter = getRoundWhereForStage(stage);
+  if (!roundFilter) return null;
 
   const existingWinner = await prisma.rewardWinner.findFirst({
     where: {
@@ -29,8 +34,6 @@ export async function generateRewardWinnerForStage(stage) {
     return existingWinner;
   }
 
-  const roundFilter = getRoundWhereForStage(stage);
-
   const matches = await prisma.match.findMany({
     where: {
       round: roundFilter,
@@ -41,15 +44,10 @@ export async function generateRewardWinnerForStage(stage) {
     },
   });
 
-  if (!matches.length) {
-    return null;
-  }
+  if (!matches.length) return null;
 
   const allFinished = matches.every((match) => match.status === 'FINISHED');
-
-  if (!allFinished) {
-    return null;
-  }
+  if (!allFinished) return null;
 
   const users = await prisma.user.findMany({
     where: {
@@ -57,8 +55,6 @@ export async function generateRewardWinnerForStage(stage) {
     },
     select: {
       id: true,
-      name: true,
-      employeeCode: true,
       predictions: {
         where: {
           match: {
@@ -109,21 +105,17 @@ export async function generateRewardWinnerForStage(stage) {
       return a.earliestSubmission - b.earliestSubmission;
     });
 
-  if (!ranked.length) {
-    return null;
-  }
+  if (!ranked.length) return null;
 
   const topUser = ranked[0];
 
-  const winner = await prisma.rewardWinner.create({
+  return prisma.rewardWinner.create({
     data: {
       roundKey: stage,
       userId: topUser.id,
       points: topUser.points,
     },
   });
-
-  return winner;
 }
 
 export function getStageKeyFromRound(round) {
