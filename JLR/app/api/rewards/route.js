@@ -17,7 +17,7 @@ const ROUND_CONFIG = [
   {
     key: 'r16',
     roundKey: 'Round of 16',
-    winnersCount: 1,
+    winnersCount: 2,
     startAt: '2026-07-05T00:00:00+03:00',
     endAt: '2026-07-07T23:59:59+03:00',
     labels: { en: 'Round of 16', ar: 'دور 16' },
