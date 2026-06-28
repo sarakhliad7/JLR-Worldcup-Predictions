@@ -30,7 +30,7 @@ const content = {
     ],
     grandPrize: 'Grand Prize',
     leagueChampions: 'League Champions',
-    grandDesc: 'Top 2 point holders at the end of the tournament.'
+    grandDesc: 'Top 5 point holders at the end of the tournament.'
   },
   ar: {
     title: 'طريق الجوائز',
@@ -59,7 +59,7 @@ const content = {
     ],
     grandPrize: 'الجائزة الكبرى',
     leagueChampions: 'أبطال الدوري',
-    grandDesc: 'أعلى 2 نقاط في نهاية البطولة.'
+    grandDesc: 'أعلى 5 نقاط في نهاية البطولة.'
   }
 };
 
