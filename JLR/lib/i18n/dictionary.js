@@ -71,10 +71,10 @@ login_created: 'Created by Sara Khalid',
     // Champion challenge
     champion_eyebrow: 'Champion challenge',
     champion_title: 'Pick the World Cup champion',
-    champion_bonus: '+20 points if correct · Deadline: 3 July',
+    champion_bonus: '+20 points if correct · Deadline: July 4, 12:00 PM',
     champion_selectTeam: 'Choose a team',
     champion_locked: 'Challenge closed for this season',
-    champion_lockedError: 'Champion picks closed after 3 July',
+    champion_lockedError: 'Champion picks closed after July 4, 12:00 PM',
     champion_chooseTeamError: 'Choose a team',
 
     // Leaderboard
@@ -290,10 +290,10 @@ login_created: 'Created by Sara Khalid',
 
     champion_eyebrow: 'تحدي البطل',
     champion_title: 'توقّع بطل كأس العالم',
-    champion_bonus: '+20 نقطة لو أصبت · آخر موعد 3 July',
+   champion_bonus: '+20 نقطة لو أصبت · آخر موعد 4 يوليو الساعة 12:00 ظهرًا',
     champion_selectTeam: 'اختر الفريق',
     champion_locked: 'أُغلق التحدي لهذا الموسم',
-    champion_lockedError: 'أُغلق تحدي البطل بعد 3 July',
+   champion_lockedError: 'أُغلق تحدي البطل بعد 4 يوليو الساعة 12:00 ظهرًا',
     champion_chooseTeamError: 'اختر فريقًا',
 
     leaderboard_title: 'لوحة المتصدرين',
