@@ -1,7 +1,26 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
+
+export const dynamic = 'force-dynamic';
+
+function normalizeStage(round) {
+  if (!round) return null;
+
+  if (round === 'Quarter-finals') return 'Quarter-final';
+  if (round === 'Semi-finals') return 'Semi-final';
+  if (round === 'Match for Third Place') return null;
+  if (round === 'Match for third place') return null;
+
+  return round;
+}
+
+function calculatePoints(user) {
+  return user.predictions
+    .filter((p) => normalizeStage(p.match?.round))
+    .reduce((sum, p) => sum + (p.pointsAwarded || 0), 0);
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,17 +32,25 @@ export async function GET() {
     where: { id: session.user.id },
     include: {
       department: true,
+      predictions: { include: { match: true } },
       userAchievements: { include: { achievement: true } },
     },
   });
 
+  const allUsers = await prisma.user.findMany({
+    include: {
+      predictions: { include: { match: true } },
+    },
+  });
+
+  const totalPoints = calculatePoints(user);
+
+  const higherRanked = allUsers.filter((u) => {
+    return calculatePoints(u) > totalPoints;
+  }).length;
+
   const allAchievements = await prisma.achievement.findMany();
   const unlockedIds = new Set(user.userAchievements.map((ua) => ua.achievementId));
-
-  // overall rank
-  const higherRanked = await prisma.user.count({
-    where: { totalPoints: { gt: user.totalPoints } },
-  });
 
   return NextResponse.json({
     user: {
@@ -31,7 +58,7 @@ export async function GET() {
       avatarLabel: user.avatarLabel || user.name.slice(0, 2),
       department: user.department?.name || null,
       departmentAr: user.department?.nameAr || user.department?.name || null,
-      totalPoints: user.totalPoints,
+      totalPoints,
       currentStreak: user.currentStreak,
       bestStreak: user.bestStreak,
       rank: higherRanked + 1,
