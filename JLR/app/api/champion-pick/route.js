@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 
-// Champion picks lock after 3 July 2026, end of day KSA time.
-// 2026-07-03 23:59:59 KSA = 2026-07-03 20:59:59 UTC
-const CHAMPION_PICK_DEADLINE = new Date('2026-07-03T20:59:59.000Z');
+// Champion picks lock after 4 July 2026, 12:00 PM KSA time.
+// 2026-07-04 12:00:00 KSA = 2026-07-04 09:00:00 UTC
+const CHAMPION_PICK_DEADLINE = new Date('2026-07-04T09:00:00.000Z');
 
 function picksLocked() {
   return new Date() > CHAMPION_PICK_DEADLINE;
