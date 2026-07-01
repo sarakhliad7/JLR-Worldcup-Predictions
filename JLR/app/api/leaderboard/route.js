@@ -224,7 +224,6 @@ export async function GET(req) {
         },
       },
     },
-    take: 500,
   });
 
   const leaderboard =
