@@ -161,6 +161,7 @@ function getWinnersLabel(count, isArabic) {
 export default function RewardsPage() {
   const [language, setLanguage] = useState('en');
   const [rounds, setRounds] = useState(fallbackRounds);
+const [grandPrize, setGrandPrize] = useState(null);
 
   useEffect(() => {
     const updateLanguage = () => setLanguage(getSavedLanguage());
@@ -172,8 +173,12 @@ export default function RewardsPage() {
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data.rounds)) {
-          setRounds(data.rounds);
-        }
+  setRounds(data.rounds);
+}
+
+if (data.grandPrize) {
+  setGrandPrize(data.grandPrize);
+}
       })
       .catch(() => {
         setRounds(fallbackRounds);
@@ -324,7 +329,32 @@ export default function RewardsPage() {
             {t.leagueChampions}
           </h2>
 
-          <p className="mt-2 text-sm text-ink-muted">{t.grandDesc}</p>
+          {grandPrize?.winners?.length ? (
+  <div className="mt-5 space-y-3">
+    {grandPrize.winners.map((winner) => (
+      <div
+        key={winner.employeeCode}
+        className="rounded-2xl border border-card-border/60 bg-white px-4 py-3"
+      >
+        <p className="font-bold">
+          #{winner.rank} {winner.name}
+        </p>
+
+        <p className="text-xs text-ink-muted">
+          {t.employeeId}: {winner.employeeCode}
+        </p>
+
+        <p className="text-xs font-bold text-brand">
+          {t.points}: {winner.points}
+        </p>
+      </div>
+    ))}
+  </div>
+) : (
+  <p className="mt-2 text-sm text-ink-muted">
+    {t.grandDesc}
+  </p>
+)}
         </div>
       </section>
     </main>

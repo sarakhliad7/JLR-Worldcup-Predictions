@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ const ROUND_CONFIG = [
     startAt: '2026-07-04T20:00:00+03:00',
     endAt: '2026-07-07T23:59:59+03:00',
     labels: { en: 'Round of 16', ar: 'دور 16' },
-    closeLabel: { en: '4 July - 7 July', ar: '4 يوليو - 7 يوليو' },
+    closeLabel: { en: '5 July - 7 July', ar: '5 يوليو - 7 يوليو' },
   },
   {
     key: 'qf',
@@ -58,6 +58,13 @@ function normalizeRound(round) {
   if (round === 'Quarter-finals') return 'Quarter-final';
   if (round === 'Semi-finals') return 'Semi-final';
 
+  if (
+    round === 'Match for Third Place' ||
+    round === 'Match for third place'
+  ) {
+    return null;
+  }
+
   return round;
 }
 
@@ -68,32 +75,39 @@ function getRoundStatus(config) {
 
   if (now < startAt) return 'upcoming';
   if (now > endAt) return 'ended';
+
   return 'in_progress';
 }
 
-function getUserStatsForRound(user, roundKey) {
-  const filteredPredictions = user.predictions.filter(
-    (prediction) => normalizeRound(prediction.match?.round) === roundKey
-  );
-
-  const totalPoints = filteredPredictions.reduce(
+function getStats(predictions) {
+  const totalPoints = predictions.reduce(
     (sum, prediction) => sum + (prediction.pointsAwarded || 0),
     0
   );
 
-  const exactCount = filteredPredictions.filter(
+  const exactCount = predictions.filter(
     (prediction) => prediction.pointsAwarded === 4
   ).length;
 
-  const correctCount = filteredPredictions.filter(
-    (prediction) => prediction.pointsAwarded != null && prediction.pointsAwarded > 0
+  const correctCount = predictions.filter(
+    (prediction) =>
+      prediction.pointsAwarded != null &&
+      prediction.pointsAwarded > 0
   ).length;
 
-  const correctTimes = filteredPredictions
-    .filter((prediction) => prediction.pointsAwarded != null && prediction.pointsAwarded > 0)
-    .map((prediction) => new Date(prediction.createdAt).getTime());
+  const correctTimes = predictions
+    .filter(
+      (prediction) =>
+        prediction.pointsAwarded != null &&
+        prediction.pointsAwarded > 0
+    )
+    .map((prediction) =>
+      new Date(prediction.createdAt).getTime()
+    );
 
-  const earliestSubmission = correctTimes.length ? Math.min(...correctTimes) : Infinity;
+  const earliestSubmission = correctTimes.length
+    ? Math.min(...correctTimes)
+    : Infinity;
 
   return {
     totalPoints,
@@ -103,18 +117,77 @@ function getUserStatsForRound(user, roundKey) {
   };
 }
 
-async function ensureRoundWinners(config, status) {
+function rankUsers(users, roundKey = null) {
+  return users
+    .map((user) => {
+      const filteredPredictions = roundKey
+        ? user.predictions.filter(
+            (prediction) =>
+              normalizeRound(prediction.match?.round) === roundKey
+          )
+        : user.predictions.filter((prediction) =>
+            normalizeRound(prediction.match?.round)
+          );
+
+      return {
+        user,
+        ...getStats(filteredPredictions),
+      };
+    })
+    .filter((item) => item.totalPoints > 0)
+    .sort((a, b) => {
+      if (b.totalPoints !== a.totalPoints) {
+        return b.totalPoints - a.totalPoints;
+      }
+
+      if (b.exactCount !== a.exactCount) {
+        return b.exactCount - a.exactCount;
+      }
+
+      if (b.correctCount !== a.correctCount) {
+        return b.correctCount - a.correctCount;
+      }
+
+      return a.earliestSubmission - b.earliestSubmission;
+    });
+}
+
+async function ensureRoundWinners(config, status, users) {
   if (status !== 'ended') return;
 
-  const existingCount = await prisma.rewardWinner.count({
-    where: { roundKey: config.roundKey },
-  });
+  const ranked = rankUsers(users, config.roundKey).slice(
+    0,
+    config.winnersCount
+  );
 
-  if (existingCount >= config.winnersCount) return;
+  if (!ranked.length) return;
 
+  await prisma.$transaction([
+    prisma.rewardWinner.deleteMany({
+      where: {
+        roundKey: config.roundKey,
+      },
+    }),
+
+    prisma.rewardWinner.createMany({
+      data: ranked.map((item) => ({
+        roundKey: config.roundKey,
+        userId: item.user.id,
+        points: item.totalPoints,
+      })),
+    }),
+  ]);
+}
+
+export async function GET() {
   const users = await prisma.user.findMany({
-    where: { role: 'EMPLOYEE' },
-    include: {
+    where: {
+      role: 'EMPLOYEE',
+    },
+    select: {
+      id: true,
+      name: true,
+      employeeCode: true,
       predictions: {
         select: {
           pointsAwarded: true,
@@ -129,51 +202,13 @@ async function ensureRoundWinners(config, status) {
     },
   });
 
-  const topWinners = users
-    .map((user) => {
-      const stats = getUserStatsForRound(user, config.roundKey);
-
-      return {
-        userId: user.id,
-        ...stats,
-      };
-    })
-    .filter((user) => user.totalPoints > 0)
-    .sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-      if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
-      if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
-      return a.earliestSubmission - b.earliestSubmission;
-    })
-    .slice(0, config.winnersCount);
-
-  if (!topWinners.length) return;
-
-  await prisma.$transaction([
-    prisma.rewardWinner.deleteMany({
-      where: { roundKey: config.roundKey },
-    }),
-    prisma.rewardWinner.createMany({
-      data: topWinners.map((winner, index) => ({
-        id: `${config.key}-${index + 1}`,
-        roundKey: config.roundKey,
-        userId: winner.userId,
-        points: winner.totalPoints,
-      })),
-    }),
-  ]);
-}
-
-export async function GET() {
-  const statusesByRound = new Map();
-
   for (const config of ROUND_CONFIG) {
     const status = getRoundStatus(config);
-    statusesByRound.set(config.roundKey, status);
-    await ensureRoundWinners(config, status);
+
+    await ensureRoundWinners(config, status, users);
   }
 
-  const winners = await prisma.rewardWinner.findMany({
+  const savedWinners = await prisma.rewardWinner.findMany({
     include: {
       user: {
         select: {
@@ -188,12 +223,16 @@ export async function GET() {
   });
 
   const rounds = ROUND_CONFIG.map((config) => {
-    const status = statusesByRound.get(config.roundKey) || getRoundStatus(config);
+    const status = getRoundStatus(config);
 
-    const roundWinners = winners
-      .filter((winner) => normalizeRound(winner.roundKey) === config.roundKey)
+    const roundWinners = savedWinners
+      .filter(
+        (winner) =>
+          normalizeRound(winner.roundKey) === config.roundKey
+      )
       .slice(0, config.winnersCount)
-      .map((winner) => ({
+      .map((winner, index) => ({
+        rank: index + 1,
         name: winner.user?.name || 'Unknown',
         employeeCode: winner.user?.employeeCode || '-',
         points: winner.points || 0,
@@ -212,8 +251,35 @@ export async function GET() {
     };
   });
 
+  const grandPrizeEndDate = new Date('2026-07-20T00:00:00+03:00');
+
+  const grandWinners =
+    new Date() >= grandPrizeEndDate
+      ? rankUsers(users)
+          .slice(0, 5)
+          .map((item, index) => ({
+            rank: index + 1,
+            name: item.user.name,
+            employeeCode: item.user.employeeCode || '-',
+            points: item.totalPoints,
+            exactCount: item.exactCount,
+            correctCount: item.correctCount,
+          }))
+      : [];
+
   return NextResponse.json(
-    { rounds },
-    { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    {
+      rounds,
+      grandPrize: {
+        winnersCount: 5,
+        winners: grandWinners,
+      },
+    },
+    {
+      headers: {
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate',
+      },
+    }
   );
 }
