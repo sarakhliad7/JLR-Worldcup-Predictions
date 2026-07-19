@@ -68,13 +68,40 @@ function normalizeRound(round) {
   return round;
 }
 
-function getRoundStatus(config) {
+function getRoundStatus(config, matches) {
   const now = new Date();
   const startAt = new Date(config.startAt);
-  const endAt = new Date(config.endAt);
 
-  if (now < startAt) return 'upcoming';
-  if (now > endAt) return 'ended';
+  if (now < startAt) {
+    return 'upcoming';
+  }
+
+  const roundMatches = matches.filter(
+    (match) => normalizeRound(match.round) === config.roundKey
+  );
+
+  if (roundMatches.length === 0) {
+    return 'in_progress';
+  }
+
+  const allMatchesFinished = roundMatches.every(
+    (match) =>
+      match.status === 'FINISHED' &&
+      match.homeScore !== null &&
+      match.awayScore !== null
+  );
+
+  const allPredictionsScored = roundMatches.every(
+    (match) =>
+      match.predictions.length === 0 ||
+      match.predictions.every(
+        (prediction) => prediction.pointsAwarded !== null
+      )
+  );
+
+  if (allMatchesFinished && allPredictionsScored) {
+    return 'ended';
+  }
 
   return 'in_progress';
 }
@@ -91,19 +118,17 @@ function getStats(predictions) {
 
   const correctCount = predictions.filter(
     (prediction) =>
-      prediction.pointsAwarded != null &&
+      prediction.pointsAwarded !== null &&
       prediction.pointsAwarded > 0
   ).length;
 
   const correctTimes = predictions
     .filter(
       (prediction) =>
-        prediction.pointsAwarded != null &&
+        prediction.pointsAwarded !== null &&
         prediction.pointsAwarded > 0
     )
-    .map((prediction) =>
-      new Date(prediction.createdAt).getTime()
-    );
+    .map((prediction) => new Date(prediction.createdAt).getTime());
 
   const earliestSubmission = correctTimes.length
     ? Math.min(...correctTimes)
@@ -180,30 +205,47 @@ async function ensureRoundWinners(config, status, users) {
 }
 
 export async function GET() {
-  const users = await prisma.user.findMany({
-    where: {
-      role: 'EMPLOYEE',
-    },
-    select: {
-      id: true,
-      name: true,
-      employeeCode: true,
-      predictions: {
-        select: {
-          pointsAwarded: true,
-          createdAt: true,
-          match: {
-            select: {
-              round: true,
+  const [users, matches] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        role: 'EMPLOYEE',
+      },
+      select: {
+        id: true,
+        name: true,
+        employeeCode: true,
+        predictions: {
+          select: {
+            pointsAwarded: true,
+            createdAt: true,
+            match: {
+              select: {
+                round: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+
+    prisma.match.findMany({
+      select: {
+        id: true,
+        round: true,
+        status: true,
+        homeScore: true,
+        awayScore: true,
+        predictions: {
+          select: {
+            pointsAwarded: true,
+          },
+        },
+      },
+    }),
+  ]);
 
   for (const config of ROUND_CONFIG) {
-    const status = getRoundStatus(config);
+    const status = getRoundStatus(config, matches);
 
     await ensureRoundWinners(config, status, users);
   }
@@ -223,7 +265,7 @@ export async function GET() {
   });
 
   const rounds = ROUND_CONFIG.map((config) => {
-    const status = getRoundStatus(config);
+    const status = getRoundStatus(config, matches);
 
     const roundWinners = savedWinners
       .filter(
@@ -247,7 +289,7 @@ export async function GET() {
       startAt: config.startAt,
       endAt: config.endAt,
       status,
-      winners: roundWinners,
+      winners: status === 'ended' ? roundWinners : [],
     };
   });
 
@@ -296,10 +338,16 @@ export async function GET() {
     },
   ];
 
-  const grandPrizeEndDate = new Date('2026-07-20T00:00:00+03:00');
+  const finalConfig = ROUND_CONFIG.find(
+    (config) => config.key === 'final'
+  );
+
+  const finalStatus = finalConfig
+    ? getRoundStatus(finalConfig, matches)
+    : 'in_progress';
 
   const realGrandWinners =
-    new Date() >= grandPrizeEndDate
+    finalStatus === 'ended'
       ? rankUsers(users)
           .slice(0, 5)
           .map((item, index) => ({
