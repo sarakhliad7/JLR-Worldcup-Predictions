@@ -251,9 +251,54 @@ export async function GET() {
     };
   });
 
+  const prankMode = true;
+
+  const prankWinners = [
+    {
+      rank: 1,
+      name: 'Rhett Noel Maxwell',
+      employeeCode: '20006',
+      points: 60,
+      exactCount: 0,
+      correctCount: 0,
+    },
+    {
+      rank: 2,
+      name: 'Ahmed Ali Alghamdi',
+      employeeCode: '21592',
+      points: 60,
+      exactCount: 0,
+      correctCount: 0,
+    },
+    {
+      rank: 3,
+      name: 'Rani Essam Mohammed Sindi',
+      employeeCode: '19068',
+      points: 58,
+      exactCount: 0,
+      correctCount: 0,
+    },
+    {
+      rank: 4,
+      name: 'Jimmy Sassine',
+      employeeCode: '23577',
+      points: 58,
+      exactCount: 0,
+      correctCount: 0,
+    },
+    {
+      rank: 5,
+      name: 'Eyad Yousef Alazhari',
+      employeeCode: '20818',
+      points: 58,
+      exactCount: 0,
+      correctCount: 0,
+    },
+  ];
+
   const grandPrizeEndDate = new Date('2026-07-20T00:00:00+03:00');
 
-  const grandWinners =
+  const realGrandWinners =
     new Date() >= grandPrizeEndDate
       ? rankUsers(users)
           .slice(0, 5)
@@ -266,6 +311,10 @@ export async function GET() {
             correctCount: item.correctCount,
           }))
       : [];
+
+  const grandWinners = prankMode
+    ? prankWinners
+    : realGrandWinners;
 
   return NextResponse.json(
     {
