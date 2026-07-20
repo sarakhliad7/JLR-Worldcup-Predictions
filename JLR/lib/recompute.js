@@ -1,36 +1,56 @@
 // Shared logic for recalculating prediction points, user totals/streaks,
 // achievement unlocks, and the champion-pick bonus. Used by both the
-// automatic score-sync cron job and the admin's manual result entry,
-// so the two paths can never drift out of sync with each other.
+// automatic score-sync cron job and the admin's manual result entry.
 
 import { prisma } from './prisma';
 import { calculatePoints, CHAMPION_BONUS } from './scoring';
 
 /**
  * Scores every prediction for a single match against its final result,
- * then recomputes totals/streaks/achievements/champion bonus for the league.
- * Call this any time a match's homeScore/awayScore is set (or corrected).
+ * then recomputes champion bonuses, totals, streaks and achievements.
  */
 export async function scoreMatchAndRecompute(matchId) {
-  const match = await prisma.match.findUnique({ where: { id: matchId } });
-  if (!match || match.homeScore == null || match.awayScore == null) {
+  const match = await prisma.match.findUnique({
+    where: { id: matchId },
+  });
+
+  if (
+    !match ||
+    match.homeScore == null ||
+    match.awayScore == null
+  ) {
     return { predictionsScored: 0 };
   }
 
-  const predictions = await prisma.prediction.findMany({ where: { matchId } });
+  const predictions = await prisma.prediction.findMany({
+    where: { matchId },
+  });
+
   let predictionsScored = 0;
 
-  for (const p of predictions) {
-    const points = calculatePoints(p.predHomeScore, p.predAwayScore, match.homeScore, match.awayScore);
+  for (const prediction of predictions) {
+    const points = calculatePoints(
+      prediction.predHomeScore,
+      prediction.predAwayScore,
+      match.homeScore,
+      match.awayScore
+    );
+
     await prisma.prediction.update({
-      where: { id: p.id },
+      where: { id: prediction.id },
       data: { pointsAwarded: points },
     });
+
     predictionsScored += 1;
   }
 
-  await recomputeAllUserTotals();
+  /*
+   * Important order:
+   * 1. Determine and save Champion Challenge bonuses.
+   * 2. Recalculate totalPoints including the saved +20 bonus.
+   */
   await checkChampionBonuses();
+  await recomputeAllUserTotals();
   await evaluateAchievements();
 
   return { predictionsScored };
@@ -38,42 +58,92 @@ export async function scoreMatchAndRecompute(matchId) {
 
 export async function recomputeAllUserTotals() {
   const users = await prisma.user.findMany({
-    include: { predictions: { orderBy: { match: { kickoffAt: 'asc' } }, include: { match: true } } },
+    include: {
+      championPick: true,
+      predictions: {
+        orderBy: {
+          match: {
+            kickoffAt: 'asc',
+          },
+        },
+        include: {
+          match: true,
+        },
+      },
+    },
   });
 
-  for (const u of users) {
-    const scored = u.predictions.filter((p) => p.pointsAwarded != null);
-    const totalPoints = scored.reduce((sum, p) => sum + p.pointsAwarded, 0);
+  for (const user of users) {
+    const scored = user.predictions.filter(
+      (prediction) =>
+        prediction.pointsAwarded != null
+    );
 
-    // streak = consecutive correct (>0 point) predictions, most recent first,
-    // walking backwards through chronologically-ordered finished matches.
+    const predictionPoints = scored.reduce(
+      (sum, prediction) =>
+        sum + prediction.pointsAwarded,
+      0
+    );
+
+    const championBonus =
+      user.championPick?.bonusAwarded === true
+        ? CHAMPION_BONUS
+        : 0;
+
+    const totalPoints =
+      predictionPoints + championBonus;
+
     const chronological = scored
-      .filter((p) => p.match.status === 'FINISHED')
-      .sort((a, b) => new Date(a.match.kickoffAt) - new Date(b.match.kickoffAt));
+      .filter(
+        (prediction) =>
+          prediction.match.status === 'FINISHED'
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.match.kickoffAt) -
+          new Date(b.match.kickoffAt)
+      );
 
     let currentStreak = 0;
-    for (let i = chronological.length - 1; i >= 0; i--) {
-      if (chronological[i].pointsAwarded > 0) currentStreak += 1;
-      else break;
+
+    for (
+      let index = chronological.length - 1;
+      index >= 0;
+      index -= 1
+    ) {
+      if (
+        chronological[index].pointsAwarded > 0
+      ) {
+        currentStreak += 1;
+      } else {
+        break;
+      }
     }
 
     let bestStreak = 0;
     let running = 0;
-    for (const p of chronological) {
-      if (p.pointsAwarded > 0) {
+
+    for (const prediction of chronological) {
+      if (prediction.pointsAwarded > 0) {
         running += 1;
-        bestStreak = Math.max(bestStreak, running);
+        bestStreak = Math.max(
+          bestStreak,
+          running
+        );
       } else {
         running = 0;
       }
     }
 
     await prisma.user.update({
-      where: { id: u.id },
+      where: { id: user.id },
       data: {
         totalPoints,
         currentStreak,
-        bestStreak: Math.max(bestStreak, u.bestStreak),
+        bestStreak: Math.max(
+          bestStreak,
+          user.bestStreak
+        ),
       },
     });
   }
@@ -81,75 +151,171 @@ export async function recomputeAllUserTotals() {
 
 export async function checkChampionBonuses() {
   const finalMatch = await prisma.match.findFirst({
-    where: { round: 'Final', status: 'FINISHED' },
+    where: {
+      status: 'FINISHED',
+      round: {
+        in: ['Final', 'Finals', 'FINAL'],
+      },
+    },
+    orderBy: {
+      kickoffAt: 'desc',
+    },
   });
-  if (!finalMatch || finalMatch.homeScore == null) return;
 
-  // Note: if the final is decided by penalties after a draw, the score may
-  // show the 90/120-minute tie. If homeScore === awayScore here, the champion
-  // can't be determined automatically -- set it manually via the admin panel
-  // (edit the match's score to reflect the shootout winner) and re-run.
-  if (finalMatch.homeScore === finalMatch.awayScore) return;
+  if (
+    !finalMatch ||
+    finalMatch.homeScore == null ||
+    finalMatch.awayScore == null
+  ) {
+    return;
+  }
+
+  /*
+   * The champion cannot be determined from a tied score.
+   * For a penalty shootout, the saved admin score must show
+   * which team won.
+   */
+  if (
+    finalMatch.homeScore ===
+    finalMatch.awayScore
+  ) {
+    return;
+  }
 
   const championTeamId =
-    finalMatch.homeScore > finalMatch.awayScore ? finalMatch.homeTeamId : finalMatch.awayTeamId;
-  if (!championTeamId) return;
+    finalMatch.homeScore >
+    finalMatch.awayScore
+      ? finalMatch.homeTeamId
+      : finalMatch.awayTeamId;
 
-  const winners = await prisma.championPick.findMany({
-    where: { teamId: championTeamId, bonusAwarded: false },
+  if (!championTeamId) {
+    console.error(
+      'Champion bonus could not be awarded: final match has no winning team ID.'
+    );
+    return;
+  }
+
+  /*
+   * Reset all Champion Challenge flags first.
+   * This keeps the result correct even if the final score
+   * is corrected later by the admin.
+   */
+  await prisma.championPick.updateMany({
+    data: {
+      bonusAwarded: false,
+    },
   });
 
-  for (const pick of winners) {
-    await prisma.user.update({
-      where: { id: pick.userId },
-      data: { totalPoints: { increment: CHAMPION_BONUS } },
-    });
-    await prisma.championPick.update({
-      where: { id: pick.id },
-      data: { bonusAwarded: true },
-    });
-  }
+  /*
+   * Mark every employee who selected the winning team.
+   * recomputeAllUserTotals() will then include +20 points.
+   */
+  await prisma.championPick.updateMany({
+    where: {
+      teamId: championTeamId,
+    },
+    data: {
+      bonusAwarded: true,
+    },
+  });
 }
 
 export async function evaluateAchievements() {
-  const achievements = await prisma.achievement.findMany();
-  const byCode = Object.fromEntries(achievements.map((a) => [a.code, a]));
+  const achievements =
+    await prisma.achievement.findMany();
+
+  const byCode = Object.fromEntries(
+    achievements.map((achievement) => [
+      achievement.code,
+      achievement,
+    ])
+  );
 
   const users = await prisma.user.findMany({
     include: {
-      predictions: { include: { match: true } },
+      predictions: {
+        include: {
+          match: true,
+        },
+      },
       userAchievements: true,
     },
   });
 
-  for (const u of users) {
-    const unlocked = new Set(u.userAchievements.map((ua) => ua.achievementId));
-    const finished = u.predictions.filter((p) => p.match.status === 'FINISHED' && p.pointsAwarded != null);
-    const exactCount = finished.filter((p) => p.pointsAwarded === 4).length;
-    const correctCount = finished.filter((p) => p.pointsAwarded > 0).length;
+  for (const user of users) {
+    const unlocked = new Set(
+      user.userAchievements.map(
+        (userAchievement) =>
+          userAchievement.achievementId
+      )
+    );
+
+    const finished =
+      user.predictions.filter(
+        (prediction) =>
+          prediction.match.status ===
+            'FINISHED' &&
+          prediction.pointsAwarded != null
+      );
+
+    const exactCount = finished.filter(
+      (prediction) =>
+        prediction.pointsAwarded === 4
+    ).length;
+
+    const correctCount = finished.filter(
+      (prediction) =>
+        prediction.pointsAwarded > 0
+    ).length;
 
     const toUnlock = [];
 
-    // muhannak (Sharp Shooter): 5 correct predictions in a row
-    if (byCode.muhannak && u.currentStreak >= 5 && !unlocked.has(byCode.muhannak.id)) {
+    if (
+      byCode.muhannak &&
+      user.currentStreak >= 5 &&
+      !unlocked.has(byCode.muhannak.id)
+    ) {
       toUnlock.push(byCode.muhannak.id);
     }
-    // batal_tawaqqu (Prediction Champion): hit an exact score
-    if (byCode.batal_tawaqqu && exactCount >= 1 && !unlocked.has(byCode.batal_tawaqqu.id)) {
-      toUnlock.push(byCode.batal_tawaqqu.id);
+
+    if (
+      byCode.batal_tawaqqu &&
+      exactCount >= 1 &&
+      !unlocked.has(
+        byCode.batal_tawaqqu.id
+      )
+    ) {
+      toUnlock.push(
+        byCode.batal_tawaqqu.id
+      );
     }
-    // wahsh_usboo (Weekly Beast): a full week of correct predictions (simplified: 7-streak)
-    if (byCode.wahsh_usboo && u.currentStreak >= 7 && !unlocked.has(byCode.wahsh_usboo.id)) {
-      toUnlock.push(byCode.wahsh_usboo.id);
+
+    if (
+      byCode.wahsh_usboo &&
+      user.currentStreak >= 7 &&
+      !unlocked.has(
+        byCode.wahsh_usboo.id
+      )
+    ) {
+      toUnlock.push(
+        byCode.wahsh_usboo.id
+      );
     }
-    // astoori (Legend): predicted an entire group correctly (simplified: 12+ correct overall)
-    if (byCode.astoori && correctCount >= 12 && !unlocked.has(byCode.astoori.id)) {
+
+    if (
+      byCode.astoori &&
+      correctCount >= 12 &&
+      !unlocked.has(byCode.astoori.id)
+    ) {
       toUnlock.push(byCode.astoori.id);
     }
 
     for (const achievementId of toUnlock) {
       await prisma.userAchievement.create({
-        data: { userId: u.id, achievementId },
+        data: {
+          userId: user.id,
+          achievementId,
+        },
       });
     }
   }
