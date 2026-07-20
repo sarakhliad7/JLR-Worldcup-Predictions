@@ -2,6 +2,7 @@
 import { prisma } from '../../../lib/prisma';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const ACTIVE_STAGES = [
   {
@@ -41,33 +42,51 @@ function normalizeStage(round) {
 
   if (round === 'Quarter-finals') return 'Quarter-final';
   if (round === 'Semi-finals') return 'Semi-final';
-  if (round === 'Match for Third Place') return null;
-  if (round === 'Match for third place') return null;
+
+  if (
+    round === 'Match for Third Place' ||
+    round === 'Match for third place'
+  ) {
+    return null;
+  }
 
   return round;
 }
 
 function getStageMeta(stageKey) {
-  return ACTIVE_STAGES.find((stage) => stage.key === stageKey) || null;
+  return (
+    ACTIVE_STAGES.find(
+      (stage) => stage.key === stageKey
+    ) || null
+  );
 }
 
 async function getCurrentStage() {
   const now = new Date();
 
-  const stageByDate = ACTIVE_STAGES.find((stage) => {
-    const start = new Date(stage.start);
-    const end = new Date(stage.end);
-    return now >= start && now <= end;
-  });
+  const stageByDate = ACTIVE_STAGES.find(
+    (stage) => {
+      const start = new Date(stage.start);
+      const end = new Date(stage.end);
 
-  if (stageByDate) return stageByDate.key;
+      return now >= start && now <= end;
+    }
+  );
 
-  const nextStage = ACTIVE_STAGES.find((stage) => {
-    const end = new Date(stage.end);
-    return now <= end;
-  });
+  if (stageByDate) {
+    return stageByDate.key;
+  }
 
-  if (nextStage) return nextStage.key;
+  const nextStage = ACTIVE_STAGES.find(
+    (stage) => {
+      const end = new Date(stage.end);
+      return now <= end;
+    }
+  );
+
+  if (nextStage) {
+    return nextStage.key;
+  }
 
   return 'Final';
 }
@@ -75,169 +94,350 @@ async function getCurrentStage() {
 function getUserPoints(user, roundFilter) {
   const filteredPredictions = roundFilter
     ? user.predictions.filter(
-        (p) => normalizeStage(p.match?.round) === roundFilter
+        (prediction) =>
+          normalizeStage(
+            prediction.match?.round
+          ) === roundFilter
       )
-    : user.predictions.filter((p) => normalizeStage(p.match?.round));
+    : user.predictions.filter(
+        (prediction) =>
+          normalizeStage(
+            prediction.match?.round
+          )
+      );
 
-  const totalPoints = filteredPredictions.reduce(
-    (sum, p) => sum + (p.pointsAwarded || 0),
-    0
-  );
+  /*
+   * Stage leaderboard:
+   * Show only points earned during that stage.
+   *
+   * Overall leaderboard:
+   * Use User.totalPoints because it includes
+   * prediction points plus the +20 Champion bonus.
+   */
+  const totalPoints = roundFilter
+    ? filteredPredictions.reduce(
+        (sum, prediction) =>
+          sum +
+          (prediction.pointsAwarded || 0),
+        0
+      )
+    : user.totalPoints;
 
-  return { filteredPredictions, totalPoints };
+  return {
+    filteredPredictions,
+    totalPoints,
+  };
 }
 
-function buildUserLeaderboard(users, roundFilter) {
+function buildUserLeaderboard(
+  users,
+  roundFilter
+) {
   return users
-    .map((u) => {
-      const { filteredPredictions, totalPoints } = getUserPoints(u, roundFilter);
+    .map((user) => {
+      const {
+        filteredPredictions,
+        totalPoints,
+      } = getUserPoints(
+        user,
+        roundFilter
+      );
 
-      const exactCount = filteredPredictions.filter(
-        (p) => p.pointsAwarded === 4
-      ).length;
+      const exactCount =
+        filteredPredictions.filter(
+          (prediction) =>
+            prediction.pointsAwarded === 4
+        ).length;
 
-      const correctCount = filteredPredictions.filter(
-        (p) => p.pointsAwarded != null && p.pointsAwarded > 0
-      ).length;
+      const correctCount =
+        filteredPredictions.filter(
+          (prediction) =>
+            prediction.pointsAwarded != null &&
+            prediction.pointsAwarded > 0
+        ).length;
 
-      const earliestCorrectSubmission = filteredPredictions
-        .filter((p) => p.pointsAwarded != null && p.pointsAwarded > 0)
-        .map((p) => new Date(p.createdAt).getTime());
+      const correctSubmissionTimes =
+        filteredPredictions
+          .filter(
+            (prediction) =>
+              prediction.pointsAwarded != null &&
+              prediction.pointsAwarded > 0
+          )
+          .map((prediction) =>
+            new Date(
+              prediction.createdAt
+            ).getTime()
+          );
 
-      const earliestSubmission = earliestCorrectSubmission.length
-        ? Math.min(...earliestCorrectSubmission)
-        : Infinity;
+      const earliestSubmission =
+        correctSubmissionTimes.length
+          ? Math.min(
+              ...correctSubmissionTimes
+            )
+          : Infinity;
 
       return {
-        id: u.id,
-        name: u.name,
-        avatarLabel: u.avatarLabel || u.name.slice(0, 2),
-        department: u.department
+        id: user.id,
+        name: user.name,
+        avatarLabel:
+          user.avatarLabel ||
+          user.name.slice(0, 2),
+
+        department: user.department
           ? {
-              id: u.department.id,
-              name: u.department.name,
-              nameAr: u.department.nameAr || u.department.name,
-              colorHex: u.department.colorHex,
+              id: user.department.id,
+              name: user.department.name,
+              nameAr:
+                user.department.nameAr ||
+                user.department.name,
+              colorHex:
+                user.department.colorHex,
             }
           : null,
+
         totalPoints,
         exactCount,
         correctCount,
-        currentStreak: u.currentStreak,
-        badges: u.userAchievements.map((ua) => ua.achievement.icon),
-        _earliestSubmission: earliestSubmission,
+        currentStreak:
+          user.currentStreak,
+
+        badges:
+          user.userAchievements.map(
+            (userAchievement) =>
+              userAchievement.achievement.icon
+          ),
+
+        _earliestSubmission:
+          earliestSubmission,
       };
     })
-    .filter((u) => u.totalPoints > 0)
+    .filter(
+      (user) => user.totalPoints > 0
+    )
     .sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-      if (b.exactCount !== a.exactCount) return b.exactCount - a.exactCount;
-      if (b.correctCount !== a.correctCount) return b.correctCount - a.correctCount;
-      return a._earliestSubmission - b._earliestSubmission;
+      if (
+        b.totalPoints !== a.totalPoints
+      ) {
+        return (
+          b.totalPoints - a.totalPoints
+        );
+      }
+
+      if (
+        b.exactCount !== a.exactCount
+      ) {
+        return b.exactCount - a.exactCount;
+      }
+
+      if (
+        b.correctCount !== a.correctCount
+      ) {
+        return (
+          b.correctCount -
+          a.correctCount
+        );
+      }
+
+      return (
+        a._earliestSubmission -
+        b._earliestSubmission
+      );
     })
-    .map(({ _earliestSubmission, ...rest }, idx) => ({
-      rank: idx + 1,
-      ...rest,
-    }));
+    .map(
+      (
+        {
+          _earliestSubmission,
+          ...user
+        },
+        index
+      ) => ({
+        rank: index + 1,
+        ...user,
+      })
+    );
 }
 
-function buildDepartmentLeaderboard(users) {
+function buildDepartmentLeaderboard(
+  users
+) {
   const departments = new Map();
 
   for (const user of users) {
-    if (!user.department) continue;
+    if (!user.department) {
+      continue;
+    }
 
-    const { totalPoints } = getUserPoints(user, null);
+    /*
+     * Use User.totalPoints here too,
+     * so department totals include
+     * Champion Challenge bonuses.
+     */
+    const totalPoints = user.totalPoints;
 
-    if (totalPoints <= 0) continue;
+    if (totalPoints <= 0) {
+      continue;
+    }
 
-    const deptId = user.department.id;
+    const departmentId =
+      user.department.id;
 
-    if (!departments.has(deptId)) {
-      departments.set(deptId, {
-        id: deptId,
+    if (
+      !departments.has(departmentId)
+    ) {
+      departments.set(departmentId, {
+        id: departmentId,
         name: user.department.name,
-        nameAr: user.department.nameAr || user.department.name,
-        colorHex: user.department.colorHex,
+        nameAr:
+          user.department.nameAr ||
+          user.department.name,
+        colorHex:
+          user.department.colorHex,
         totalPoints: 0,
         participantCount: 0,
       });
     }
 
-    const dept = departments.get(deptId);
-    dept.totalPoints += totalPoints;
-    dept.participantCount += 1;
+    const department =
+      departments.get(departmentId);
+
+    department.totalPoints +=
+      totalPoints;
+
+    department.participantCount += 1;
   }
 
-  return Array.from(departments.values())
-    .filter((dept) => dept.totalPoints > 0)
-    .sort((a, b) => b.totalPoints - a.totalPoints)
-    .map((dept, idx) => ({
-      rank: idx + 1,
-      id: dept.id,
-      name: dept.name,
-      nameAr: dept.nameAr,
-      avatarLabel: dept.name.slice(0, 2).toUpperCase(),
+  return Array.from(
+    departments.values()
+  )
+    .filter(
+      (department) =>
+        department.totalPoints > 0
+    )
+    .sort(
+      (a, b) =>
+        b.totalPoints - a.totalPoints
+    )
+    .map((department, index) => ({
+      rank: index + 1,
+      id: department.id,
+      name: department.name,
+      nameAr: department.nameAr,
+      avatarLabel:
+        department.name
+          .slice(0, 2)
+          .toUpperCase(),
       department: null,
-      totalPoints: dept.totalPoints,
-      participantCount: dept.participantCount,
-      colorHex: dept.colorHex,
+      totalPoints:
+        department.totalPoints,
+      participantCount:
+        department.participantCount,
+      colorHex:
+        department.colorHex,
       isDepartment: true,
     }));
 }
 
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(
+    req.url
+  );
 
-  const mode = searchParams.get('mode') || 'overall';
+  const mode =
+    searchParams.get('mode') ||
+    'overall';
 
-  const currentStage = await getCurrentStage();
-  const currentStageMeta = getStageMeta(currentStage);
+  const currentStage =
+    await getCurrentStage();
+
+  const currentStageMeta =
+    getStageMeta(currentStage);
 
   const stage =
     mode === 'current'
       ? currentStage
       : searchParams.get('stage');
 
-  const roundFilter = stage ? normalizeStage(stage) : null;
+  const roundFilter = stage
+    ? normalizeStage(stage)
+    : null;
 
-  const users = await prisma.user.findMany({
-    where: {
-      role: 'EMPLOYEE',
-    },
-    include: {
-      department: true,
-      predictions: {
-        select: {
-          pointsAwarded: true,
-          createdAt: true,
-          match: {
-            select: {
-              round: true,
+  const users =
+    await prisma.user.findMany({
+      where: {
+        role: 'EMPLOYEE',
+      },
+
+      select: {
+        id: true,
+        name: true,
+        avatarLabel: true,
+        totalPoints: true,
+        currentStreak: true,
+
+        department: {
+          select: {
+            id: true,
+            name: true,
+            nameAr: true,
+            colorHex: true,
+          },
+        },
+
+        predictions: {
+          select: {
+            pointsAwarded: true,
+            createdAt: true,
+
+            match: {
+              select: {
+                round: true,
+              },
+            },
+          },
+        },
+
+        userAchievements: {
+          select: {
+            achievement: {
+              select: {
+                icon: true,
+              },
             },
           },
         },
       },
-      userAchievements: {
-        include: {
-          achievement: true,
-        },
-      },
-    },
-  });
+    });
 
   const leaderboard =
     mode === 'department'
-      ? buildDepartmentLeaderboard(users)
-      : buildUserLeaderboard(users, roundFilter);
+      ? buildDepartmentLeaderboard(
+          users
+        )
+      : buildUserLeaderboard(
+          users,
+          roundFilter
+        );
 
-  return NextResponse.json({
-    leaderboard,
-    participantCount: leaderboard.length,
-    mode,
-    currentStage,
-    currentStageAr: currentStageMeta?.labelAr || currentStage,
-    stage: stage || 'overall',
-    stageAr: getStageMeta(stage)?.labelAr || 'العام',
-  });
+  return NextResponse.json(
+    {
+      leaderboard,
+      participantCount:
+        leaderboard.length,
+      mode,
+      currentStage,
+      currentStageAr:
+        currentStageMeta?.labelAr ||
+        currentStage,
+      stage: stage || 'overall',
+      stageAr:
+        getStageMeta(stage)?.labelAr ||
+        'العام',
+    },
+    {
+      headers: {
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate',
+      },
+    }
+  );
 }
