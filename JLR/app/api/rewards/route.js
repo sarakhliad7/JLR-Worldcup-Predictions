@@ -12,7 +12,10 @@ const ROUND_CONFIG = [
     startAt: '2026-06-28T00:00:00+03:00',
     endAt: '2026-07-04T12:00:00+03:00',
     labels: { en: 'Round of 32', ar: 'دور 32' },
-    closeLabel: { en: '28 June - 4 July', ar: '28 يونيو - 4 يوليو' },
+    closeLabel: {
+      en: '28 June - 4 July',
+      ar: '28 يونيو - 4 يوليو',
+    },
   },
   {
     key: 'r16',
@@ -21,7 +24,10 @@ const ROUND_CONFIG = [
     startAt: '2026-07-04T20:00:00+03:00',
     endAt: '2026-07-07T23:59:59+03:00',
     labels: { en: 'Round of 16', ar: 'دور 16' },
-    closeLabel: { en: '5 July - 7 July', ar: '5 يوليو - 7 يوليو' },
+    closeLabel: {
+      en: '5 July - 7 July',
+      ar: '5 يوليو - 7 يوليو',
+    },
   },
   {
     key: 'qf',
@@ -29,8 +35,14 @@ const ROUND_CONFIG = [
     winnersCount: 1,
     startAt: '2026-07-09T00:00:00+03:00',
     endAt: '2026-07-12T23:59:59+03:00',
-    labels: { en: 'Quarter-final', ar: 'ربع النهائي' },
-    closeLabel: { en: '9 July - 12 July', ar: '9 يوليو - 12 يوليو' },
+    labels: {
+      en: 'Quarter-final',
+      ar: 'ربع النهائي',
+    },
+    closeLabel: {
+      en: '9 July - 12 July',
+      ar: '9 يوليو - 12 يوليو',
+    },
   },
   {
     key: 'sf',
@@ -38,8 +50,14 @@ const ROUND_CONFIG = [
     winnersCount: 1,
     startAt: '2026-07-14T00:00:00+03:00',
     endAt: '2026-07-15T23:59:59+03:00',
-    labels: { en: 'Semi-final', ar: 'نصف النهائي' },
-    closeLabel: { en: '14 July - 15 July', ar: '14 يوليو - 15 يوليو' },
+    labels: {
+      en: 'Semi-final',
+      ar: 'نصف النهائي',
+    },
+    closeLabel: {
+      en: '14 July - 15 July',
+      ar: '14 يوليو - 15 يوليو',
+    },
   },
   {
     key: 'final',
@@ -47,16 +65,27 @@ const ROUND_CONFIG = [
     winnersCount: 1,
     startAt: '2026-07-19T00:00:00+03:00',
     endAt: '2026-07-19T23:59:59+03:00',
-    labels: { en: 'Final', ar: 'النهائي' },
-    closeLabel: { en: '19 July', ar: '19 يوليو' },
+    labels: {
+      en: 'Final',
+      ar: 'النهائي',
+    },
+    closeLabel: {
+      en: '19 July',
+      ar: '19 يوليو',
+    },
   },
 ];
 
 function normalizeRound(round) {
   if (!round) return null;
 
-  if (round === 'Quarter-finals') return 'Quarter-final';
-  if (round === 'Semi-finals') return 'Semi-final';
+  if (round === 'Quarter-finals') {
+    return 'Quarter-final';
+  }
+
+  if (round === 'Semi-finals') {
+    return 'Semi-final';
+  }
 
   if (
     round === 'Match for Third Place' ||
@@ -77,7 +106,8 @@ function getRoundStatus(config, matches) {
   }
 
   const roundMatches = matches.filter(
-    (match) => normalizeRound(match.round) === config.roundKey
+    (match) =>
+      normalizeRound(match.round) === config.roundKey
   );
 
   if (roundMatches.length === 0) {
@@ -95,7 +125,8 @@ function getRoundStatus(config, matches) {
     (match) =>
       match.predictions.length === 0 ||
       match.predictions.every(
-        (prediction) => prediction.pointsAwarded !== null
+        (prediction) =>
+          prediction.pointsAwarded !== null
       )
   );
 
@@ -107,13 +138,15 @@ function getRoundStatus(config, matches) {
 }
 
 function getStats(predictions) {
-  const totalPoints = predictions.reduce(
-    (sum, prediction) => sum + (prediction.pointsAwarded || 0),
+  const predictionPoints = predictions.reduce(
+    (sum, prediction) =>
+      sum + (prediction.pointsAwarded || 0),
     0
   );
 
   const exactCount = predictions.filter(
-    (prediction) => prediction.pointsAwarded === 4
+    (prediction) =>
+      prediction.pointsAwarded === 4
   ).length;
 
   const correctCount = predictions.filter(
@@ -128,14 +161,16 @@ function getStats(predictions) {
         prediction.pointsAwarded !== null &&
         prediction.pointsAwarded > 0
     )
-    .map((prediction) => new Date(prediction.createdAt).getTime());
+    .map((prediction) =>
+      new Date(prediction.createdAt).getTime()
+    );
 
   const earliestSubmission = correctTimes.length
     ? Math.min(...correctTimes)
     : Infinity;
 
   return {
-    totalPoints,
+    predictionPoints,
     exactCount,
     correctCount,
     earliestSubmission,
@@ -148,15 +183,29 @@ function rankUsers(users, roundKey = null) {
       const filteredPredictions = roundKey
         ? user.predictions.filter(
             (prediction) =>
-              normalizeRound(prediction.match?.round) === roundKey
+              normalizeRound(
+                prediction.match?.round
+              ) === roundKey
           )
         : user.predictions.filter((prediction) =>
-            normalizeRound(prediction.match?.round)
+            normalizeRound(
+              prediction.match?.round
+            )
           );
+
+      const stats = getStats(filteredPredictions);
+
+      const totalPoints = roundKey
+        ? stats.predictionPoints
+        : user.totalPoints;
 
       return {
         user,
-        ...getStats(filteredPredictions),
+        totalPoints,
+        exactCount: stats.exactCount,
+        correctCount: stats.correctCount,
+        earliestSubmission:
+          stats.earliestSubmission,
       };
     })
     .filter((item) => item.totalPoints > 0)
@@ -173,17 +222,24 @@ function rankUsers(users, roundKey = null) {
         return b.correctCount - a.correctCount;
       }
 
-      return a.earliestSubmission - b.earliestSubmission;
+      return (
+        a.earliestSubmission -
+        b.earliestSubmission
+      );
     });
 }
 
-async function ensureRoundWinners(config, status, users) {
+async function ensureRoundWinners(
+  config,
+  status,
+  users
+) {
   if (status !== 'ended') return;
 
-  const ranked = rankUsers(users, config.roundKey).slice(
-    0,
-    config.winnersCount
-  );
+  const ranked = rankUsers(
+    users,
+    config.roundKey
+  ).slice(0, config.winnersCount);
 
   if (!ranked.length) return;
 
@@ -214,6 +270,7 @@ export async function GET() {
         id: true,
         name: true,
         employeeCode: true,
+        totalPoints: true,
         predictions: {
           select: {
             pointsAwarded: true,
@@ -245,124 +302,106 @@ export async function GET() {
   ]);
 
   for (const config of ROUND_CONFIG) {
-    const status = getRoundStatus(config, matches);
+    const status = getRoundStatus(
+      config,
+      matches
+    );
 
-    await ensureRoundWinners(config, status, users);
+    await ensureRoundWinners(
+      config,
+      status,
+      users
+    );
   }
 
-  const savedWinners = await prisma.rewardWinner.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          employeeCode: true,
+  const savedWinners =
+    await prisma.rewardWinner.findMany({
+      include: {
+        user: {
+          select: {
+            name: true,
+            employeeCode: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-  });
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
 
-  const rounds = ROUND_CONFIG.map((config) => {
-    const status = getRoundStatus(config, matches);
+  const rounds = ROUND_CONFIG.map(
+    (config) => {
+      const status = getRoundStatus(
+        config,
+        matches
+      );
 
-    const roundWinners = savedWinners
-      .filter(
-        (winner) =>
-          normalizeRound(winner.roundKey) === config.roundKey
-      )
-      .slice(0, config.winnersCount)
-      .map((winner, index) => ({
-        rank: index + 1,
-        name: winner.user?.name || 'Unknown',
-        employeeCode: winner.user?.employeeCode || '-',
-        points: winner.points || 0,
-      }));
+      const roundWinners = savedWinners
+        .filter(
+          (winner) =>
+            normalizeRound(
+              winner.roundKey
+            ) === config.roundKey
+        )
+        .slice(0, config.winnersCount)
+        .map((winner, index) => ({
+          rank: index + 1,
+          name:
+            winner.user?.name ||
+            'Unknown',
+          employeeCode:
+            winner.user?.employeeCode ||
+            '-',
+          points: winner.points || 0,
+        }));
 
-    return {
-      key: config.key,
-      roundKey: config.roundKey,
-      winnersCount: config.winnersCount,
-      labels: config.labels,
-      closeLabel: config.closeLabel,
-      startAt: config.startAt,
-      endAt: config.endAt,
-      status,
-      winners: status === 'ended' ? roundWinners : [],
-    };
-  });
-
-  const prankMode = true;
-
-  const prankWinners = [
-    {
-      rank: 1,
-      name: 'Rhett Noel Maxwell',
-      employeeCode: '20006',
-      points: 60,
-      exactCount: 0,
-      correctCount: 0,
-    },
-    {
-      rank: 2,
-      name: 'Ahmed Ali Alghamdi',
-      employeeCode: '21592',
-      points: 60,
-      exactCount: 0,
-      correctCount: 0,
-    },
-    {
-      rank: 3,
-      name: 'Rani Essam Mohammed Sindi',
-      employeeCode: '19068',
-      points: 58,
-      exactCount: 0,
-      correctCount: 0,
-    },
-    {
-      rank: 4,
-      name: 'Jimmy Sassine',
-      employeeCode: '23577',
-      points: 58,
-      exactCount: 0,
-      correctCount: 0,
-    },
-    {
-      rank: 5,
-      name: 'Eyad Yousef Alazhari',
-      employeeCode: '20818',
-      points: 58,
-      exactCount: 0,
-      correctCount: 0,
-    },
-  ];
+      return {
+        key: config.key,
+        roundKey: config.roundKey,
+        winnersCount:
+          config.winnersCount,
+        labels: config.labels,
+        closeLabel:
+          config.closeLabel,
+        startAt: config.startAt,
+        endAt: config.endAt,
+        status,
+        winners:
+          status === 'ended'
+            ? roundWinners
+            : [],
+      };
+    }
+  );
 
   const finalConfig = ROUND_CONFIG.find(
     (config) => config.key === 'final'
   );
 
   const finalStatus = finalConfig
-    ? getRoundStatus(finalConfig, matches)
+    ? getRoundStatus(
+        finalConfig,
+        matches
+      )
     : 'in_progress';
 
-  const realGrandWinners =
+  const grandWinners =
     finalStatus === 'ended'
       ? rankUsers(users)
           .slice(0, 5)
           .map((item, index) => ({
             rank: index + 1,
             name: item.user.name,
-            employeeCode: item.user.employeeCode || '-',
+            employeeCode:
+              item.user.employeeCode ||
+              '-',
             points: item.totalPoints,
-            exactCount: item.exactCount,
-            correctCount: item.correctCount,
+            exactCount:
+              item.exactCount,
+            correctCount:
+              item.correctCount,
           }))
       : [];
-
-  const grandWinners = prankMode
-    ? prankWinners
-    : realGrandWinners;
 
   return NextResponse.json(
     {
